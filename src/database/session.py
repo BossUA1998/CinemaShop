@@ -18,6 +18,9 @@ AsyncPostgresqlSessionLocal = sessionmaker(
     expire_on_commit=False,
 )
 
+sync_database_url = POSTGRESQL_DATABASE_URL.replace("postgresql+asyncpg", "postgresql")
+sync_postgresql_engine = create_engine(sync_database_url, echo=False)
+
 async def get_postgresql_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncPostgresqlSessionLocal() as session:
         yield session
