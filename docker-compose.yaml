@@ -1,0 +1,59 @@
+services:
+  db:
+    image: "postgres:16-alpine"
+    container_name: postgres_cinema_shop
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_cinema_data:/var/lib/postgresql/data/
+    networks:
+      - cinema_shop_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h localhost || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_cinema
+    ports:
+      - "3333:80"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - pgadmin_cinema_data:/var/lib/pgadmin
+    networks:
+      - cinema_shop_network
+
+  web:
+    build: .
+    container_name: cinema_shop
+    command: ["/bin/sh", "/src/commands/run_web_server.sh"]
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./src:/src/fastapi
+    networks:
+      - cinema_shop_network
+
+volumes:
+  postgres_cinema_data:
+    driver: local
+  pgadmin_cinema_data:
+    driver: local
+
+networks:
+  cinema_shop_network:
+    driver: bridge
