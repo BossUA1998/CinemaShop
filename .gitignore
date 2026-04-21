@@ -3,3 +3,4 @@
 .env
 poetry.toml
 __pycache__
+README.md

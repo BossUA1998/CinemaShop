@@ -1,1 +1,3 @@
-from database.session import get_postgresql_db as get_db
+from database.session import (
+    get_postgresql_db as get_db,
+)
