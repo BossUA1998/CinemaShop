@@ -3,9 +3,12 @@ from enum import auto, StrEnum
 from typing import List
 
 from sqlalchemy import Enum, String, Boolean, DateTime, func, ForeignKey, Date
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from database.models.base import Base
+from database.validators import accounts as validators
+
+from security import passwords_manager
 
 
 class UserGroupEnum(StrEnum):
@@ -37,6 +40,19 @@ class User(Base):
     )
     group_id: Mapped[int] = mapped_column(ForeignKey("user_groups.id", ondelete="RESTRICT"), nullable=False)
     group: Mapped["UserGroupModel"] = relationship("UserGroupModel", back_populates="users")
+
+    @property
+    def password(self) -> None:
+        raise AttributeError("Password is not a readable attribute. Use a setter to set the password.")
+
+    @password.setter
+    def password(self, raw_password: str) -> None:
+        validators.validate_password_strength(raw_password)
+        self._hashed_password = passwords_manager.hash_password(raw_password)
+
+    @validates("email")
+    def validate_email(self, key, email: str) -> bool:
+        return validators.validate_email(email)
 
 
 class UserProfile(Base):
