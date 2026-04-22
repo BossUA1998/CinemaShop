@@ -12,3 +12,8 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "admin")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "1qazcde3")
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "postgres_cinema_shop")
+
+    SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    SMTP_PORT: str = os.getenv("SMTP_PORT", "587")
+    SMTP_USER: str = os.getenv("SMTP_USER", "test@localhost.com")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "1qazcde3").replace("|", " ")

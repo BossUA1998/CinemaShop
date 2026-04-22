@@ -9,7 +9,7 @@ RUN python -m pip install poetry
 
 COPY ./poetry.lock /src/poetry/poetry.lock
 COPY ./pyproject.toml /src/poetry/pyproject.toml
-COPY ./src/alembic.ini /src/alembic/alembic.ini
+COPY ./alembic.ini /src/alembic/alembic.ini
 
 WORKDIR /src/poetry
 
