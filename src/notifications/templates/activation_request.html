@@ -60,6 +60,30 @@
                             <p style="margin: 24px 0 0; color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
                                 If you did not create an account, you can safely ignore this email.
                             </p>
+
+                            <!-- Divider -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0;">
+                                <tr>
+                                    <td style="border-top: 1px solid #e5e7eb;"></td>
+                                </tr>
+                            </table>
+
+                            <!-- Resend form -->
+                            <p style="margin: 0 0 16px; color: #6b7280; font-size: 14px; text-align: center;">
+                                Is the link expired? Request a new one.
+                            </p>
+                            <form method="POST" action="{{ new_action_url }}">
+                                <input type="hidden" name="email" value="{{ email }}">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td align="center">
+                                            <button type="submit" style="background-color: #f59e0b; color: #ffffff; border: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; letter-spacing: 0.02em;">
+                                                Resend Activation Email
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </form>
                         </td>
                     </tr>
 
