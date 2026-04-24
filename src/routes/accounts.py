@@ -13,7 +13,7 @@ from config.dependencies import get_email_sender
 
 from schemas.accounts import UserRegistrationResponseSchema, UserRegistrationRequestSchema, MessageResponseSchema, \
     ActivationRequestSchema
-from crud.accounts import create_new_user, get_user_by_activation_token
+from crud.accounts import create_new_user, create_activation_token, get_user_by_activation_token
 
 router = APIRouter()
 
@@ -38,10 +38,14 @@ async def register_user(
 ):
     try:
         user = await create_new_user(db=db, user_data=user_data)
+
+        token = secrets.token_hex()
+        await create_activation_token(db=db, token=token, user=user)
+
         background_tasks.add_task(
             email_sender.send_activation_email,
             email=user.email,
-            token=secrets.token_hex(),
+            token=token,
             activation_link=str(request.url_for("activate_user"))
         )
         await db.commit()
@@ -70,3 +74,5 @@ async def activate_user(
         email_sender.send_activation_complete_email,
         email=user.email,
     )
+    await db.commit()
+    return {"message": "User activated"}

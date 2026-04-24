@@ -46,7 +46,10 @@ class EmailSender:
             # TODO implement functional with error
 
     async def send_activation_email(self, email: str, activation_link: str, token: str):
-        ...
+        template = self._env.get_template(self._activation_email_template_name)
+        html = template.render(action_url=activation_link, email=email, token=token)
+        subject = "Account Activation"
+        await self._send_email(to=email, subject=subject, html=html)
 
     async def send_activation_complete_email(self, email: str):
         ...

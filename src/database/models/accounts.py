@@ -41,20 +41,20 @@ class User(Base):
     group_id: Mapped[int] = mapped_column(ForeignKey("user_groups.id", ondelete="RESTRICT"), nullable=False)
     group: Mapped["UserGroupModel"] = relationship("UserGroupModel", back_populates="users")
 
-    activation_token: Mapped[Optional["ActivationToken"]] = relationship(
-        "ActivationToken",
+    activation_token: Mapped[Optional["ActivationTokenModel"]] = relationship(
+        "ActivationTokenModel",
         back_populates="user",
         cascade="all, delete-orphan"
     )
 
-    password_reset_token: Mapped[Optional["PasswordResetToken"]] = relationship(
-        "PasswordResetToken",
+    password_reset_token: Mapped[Optional["PasswordResetTokenModel"]] = relationship(
+        "PasswordResetTokenModel",
         back_populates="user",
         cascade="all, delete-orphan"
     )
 
-    refresh_tokens: Mapped[List["RefreshToken"]] = relationship(
-        "RefreshToken",
+    refresh_tokens: Mapped[List["RefreshTokenModel"]] = relationship(
+        "RefreshTokenModel",
         back_populates="user",
         cascade="all, delete-orphan"
     )
