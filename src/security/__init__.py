@@ -1,1 +1,1 @@
-import passwords as passwords_manager
+import security.passwords as passwords_manager

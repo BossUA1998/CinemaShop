@@ -15,7 +15,7 @@ dependencies = [
     "alembic (>=1.18.4,<2.0.0)",
     "psycopg2-binary (>=2.9.12,<3.0.0)",
     "aiosmtplib (>=5.1.0,<6.0.0)",
-    "passlib (>=1.7.4,<2.0.0)",
+    "argon2-cffi (>=25.1.0,<26.0.0)",
 ]
 
 [tool.poetry]

@@ -1,5 +1,8 @@
+from typing import Annotated
+
 from pydantic import BaseModel, EmailStr, field_validator
 from database import accounts_validators
+from fastapi import Form
 
 
 class BaseEmailPasswordSchema(BaseModel):
@@ -26,3 +29,18 @@ class UserRegistrationRequestSchema(BaseEmailPasswordSchema):
 class UserRegistrationResponseSchema(BaseModel):
     id: int
     email: EmailStr
+
+
+class MessageResponseSchema(BaseModel):
+    message: str
+
+
+class ActivationRequestSchema(BaseModel):
+    token: str
+
+    @classmethod
+    def as_form(
+            cls,
+            token: Annotated[str, Form()],
+    ) -> "ActivationRequestSchema":
+        return cls(token=token)

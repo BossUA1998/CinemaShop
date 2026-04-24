@@ -1,18 +1,15 @@
 import aiosmtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from config import get_settings
-
-settings = get_settings()
 
 
 class EmailSender:
     def __init__(
             self,
-            smtp_server: str = settings.SMTP_SERVER,
-            smtp_port: int = settings.SMTP_PORT,
-            smtp_user: str = settings.SMTP_USER,
-            smtp_password: str = settings.SMTP_PASSWORD,
+            smtp_server: str,
+            smtp_port: int,
+            smtp_user: str,
+            smtp_password: str,
     ):
         self._smtp_server = smtp_server
         self._smtp_port = smtp_port
@@ -36,10 +33,10 @@ class EmailSender:
             ...
             # TODO implement functional with error
 
-    async def send_activation_email(self, email: str, activation_link: str):
+    async def send_activation_email(self, email: str, activation_link: str, token: str):
         ...
 
-    async def send_activation_complete_email(self, email: str, login_link: str):
+    async def send_activation_complete_email(self, email: str):
         ...
 
     async def send_password_reset_email(self, email: str, password_reset_link: str):

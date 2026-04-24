@@ -41,6 +41,30 @@ class User(Base):
     group_id: Mapped[int] = mapped_column(ForeignKey("user_groups.id", ondelete="RESTRICT"), nullable=False)
     group: Mapped["UserGroupModel"] = relationship("UserGroupModel", back_populates="users")
 
+    activation_token: Mapped[Optional["ActivationToken"]] = relationship(
+        "ActivationToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    password_reset_token: Mapped[Optional["PasswordResetToken"]] = relationship(
+        "PasswordResetToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    refresh_tokens: Mapped[List["RefreshToken"]] = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    profile: Mapped[Optional["UserProfile"]] = relationship(
+        "UserProfile",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
     @property
     def password(self) -> None:
         raise AttributeError("Password is not a readable attribute. Use a setter to set the password.")
@@ -66,6 +90,8 @@ class UserProfile(Base):
     date_of_birth: Mapped[date] = mapped_column(Date, nullable=True)
     info: Mapped[str] = mapped_column(String(511), nullable=False)
 
+    user: Mapped["User"] = relationship("User", back_populates="profile")
+
 
 class TokenModel(Base):
     __abstract__ = True
@@ -79,22 +105,22 @@ class TokenModel(Base):
     )
 
 
-class ActivationToken(TokenModel):
+class ActivationTokenModel(TokenModel):
     __tablename__ = "activation_tokens"
 
     user: Mapped["User"] = relationship("User", back_populates="activation_token")
 
 
-class PasswordResetToken(TokenModel):
+class PasswordResetTokenModel(TokenModel):
     __tablename__ = "password_reset_tokens"
 
     user: Mapped["User"] = relationship("User", back_populates="password_reset_token")
 
 
-class RefreshToken(Base):
+class RefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     token: Mapped[str] = mapped_column(String(511), nullable=False, unique=True)
 
-    user: Mapped["User"] = relationship("User", back_populates="refresh_token")
+    user: Mapped["User"] = relationship("User", back_populates="refresh_tokens")
