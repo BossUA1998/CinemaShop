@@ -1,6 +1,7 @@
 import aiosmtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from jinja2 import Environment, FileSystemLoader
 
 
 class EmailSender:
@@ -10,11 +11,22 @@ class EmailSender:
             smtp_port: int,
             smtp_user: str,
             smtp_password: str,
+            path_to_templates: str,
+            activation_email_template_name: str,
+            activation_complete_email_template_name: str,
+            password_email_template_name: str,
+            password_complete_email_template_name: str,
     ):
         self._smtp_server = smtp_server
         self._smtp_port = smtp_port
         self._smtp_user = smtp_user
         self._smtp_password = smtp_password
+        self._activation_email_template_name = activation_email_template_name
+        self._activation_complete_email_template_name = activation_complete_email_template_name
+        self._password_email_template_name = password_email_template_name
+        self._password_complete_email_template_name = password_complete_email_template_name
+
+        self._env = Environment(loader=FileSystemLoader(path_to_templates))
 
     async def _send_email(self, to: str, subject: str, html: str):
         msg = MIMEMultipart()
