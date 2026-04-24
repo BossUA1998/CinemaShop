@@ -1,11 +1,11 @@
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import User, UserGroupModel, UserGroupEnum, ActivationTokenModel
 from schemas.accounts import UserRegistrationRequestSchema
 
 
-async def create_new_user(db: AsyncSession, user_data: UserRegistrationRequestSchema):
+async def create_new_user(db: AsyncSession, user_data: UserRegistrationRequestSchema) -> User:
     raw_user = User(**user_data.model_dump(exclude={"password"}))
     raw_user.password = user_data.password
     raw_user.group_id = await db.scalar(
@@ -18,8 +18,8 @@ async def create_new_user(db: AsyncSession, user_data: UserRegistrationRequestSc
     return raw_user
 
 
-async def create_activation_token(db: AsyncSession, token: str, user: User):
-    activation_token = await db.execute(
+async def create_activation_token(db: AsyncSession, token: str, user: User) -> None:
+    await db.execute(
         insert(ActivationTokenModel)
         .values(
             token=token,
@@ -27,9 +27,17 @@ async def create_activation_token(db: AsyncSession, token: str, user: User):
         )
     )
 
-async def get_user_by_activation_token(db: AsyncSession, token: str):
+async def get_user_by_activation_token(db: AsyncSession, token: str) -> User:
     return await db.scalar(
         select(User)
         .join(ActivationTokenModel)
         .where(ActivationTokenModel.token == token)
     )
+
+
+async def delete_activation_token(db: AsyncSession, token: str) -> bool:
+    db_res = await db.execute(
+        delete(ActivationTokenModel)
+        .where(ActivationTokenModel.token == token)
+    )
+    return db_res.rowcount == 1

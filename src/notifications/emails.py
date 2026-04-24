@@ -52,7 +52,10 @@ class EmailSender:
         await self._send_email(to=email, subject=subject, html=html)
 
     async def send_activation_complete_email(self, email: str):
-        ...
+        template = self._env.get_template(self._activation_complete_email_template_name)
+        html = template.render(email=email)
+        subject = "Account Activation"
+        await self._send_email(to=email, subject=subject, html=html)
 
     async def send_password_reset_email(self, email: str, password_reset_link: str):
         ...

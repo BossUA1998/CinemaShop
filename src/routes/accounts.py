@@ -13,7 +13,8 @@ from config.dependencies import get_email_sender
 
 from schemas.accounts import UserRegistrationResponseSchema, UserRegistrationRequestSchema, MessageResponseSchema, \
     ActivationRequestSchema
-from crud.accounts import create_new_user, create_activation_token, get_user_by_activation_token
+from crud.accounts import create_new_user, create_activation_token, get_user_by_activation_token, \
+    delete_activation_token
 
 router = APIRouter()
 
@@ -27,7 +28,18 @@ EMAIL_SENDER = Annotated[EmailSender, Depends(get_email_sender)]
     summary="User Registration",
     description="Register a new user with an email and password",
     status_code=status.HTTP_201_CREATED,
-    responses={}
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "description": "User already registered",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "This email address is already registered"
+                    }
+                }
+            }
+        },
+    }
 )
 async def register_user(
         request: Request,
@@ -50,9 +62,10 @@ async def register_user(
         )
         await db.commit()
         return user
+
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=409, detail="User already exists")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This email address is already registered")
 
 
 @router.post(
@@ -60,7 +73,18 @@ async def register_user(
     response_model=MessageResponseSchema,
     summary="User Activate",
     status_code=status.HTTP_200_OK,
-    responses={}
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "There is no user with this token",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Token not found"
+                    }
+                }
+            }
+        }
+    }
 )
 async def activate_user(
         activation_data: Annotated[ActivationRequestSchema, Depends(ActivationRequestSchema.as_form)],
@@ -68,11 +92,22 @@ async def activate_user(
         email_sender: EMAIL_SENDER,
         background_tasks: BackgroundTasks
 ):
-    user = await get_user_by_activation_token(db=db, token=activation_data.token)
-    user.is_active = True
-    background_tasks.add_task(
-        email_sender.send_activation_complete_email,
-        email=user.email,
-    )
-    await db.commit()
-    return {"message": "User activated"}
+    try:
+        user = await get_user_by_activation_token(db=db, token=activation_data.token)
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Token not found")
+
+        user.is_active = True
+
+        await delete_activation_token(db=db, token=activation_data.token)
+
+        background_tasks.add_task(
+            email_sender.send_activation_complete_email,
+            email=user.email,
+        )
+        await db.commit()
+        return {"message": "Account activated"}
+    except Exception:
+        await db.rollback()
+        raise
