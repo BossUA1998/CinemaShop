@@ -16,7 +16,7 @@ from schemas.accounts import UserRegistrationResponseSchema, UserRegistrationReq
     ActivationRequestSchema
 from crud.accounts import create_new_user, create_activation_token, get_user_by_activation_token, \
     delete_all_activation_tokens, get_activation_token, get_user_by_email
-
+from celery_worker.tasks import delete_activation_token
 router = APIRouter()
 
 DATABASE = Annotated[AsyncSession, Depends(get_db)]
@@ -155,6 +155,11 @@ async def new_activation_token(
             new_activation_link=str(request.url_for("new_activation_token"))
         )
         await db.commit()
+
+        delete_activation_token.apply_async(
+            args=[token], countdown=25 # day
+        )
+
         return {"message": "If the email is correct, the message has been sent"}
     except Exception:
         await db.rollback()
