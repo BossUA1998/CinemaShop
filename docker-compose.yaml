@@ -51,12 +51,22 @@ services:
 
   worker:
     build: .
-    command: celery -A celery_worker.worker:celery worker --loglevel=info
+    command: celery -A celery_worker.worker:celery_app worker --loglevel=info
     env_file:
       - .env
     depends_on:
       - web
       - redis
+
+  beat:
+    build: .
+    command: celery -A celery_worker.worker:celery_app beat --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - worker
 
 
 volumes:

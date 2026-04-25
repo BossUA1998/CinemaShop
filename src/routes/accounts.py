@@ -156,10 +156,6 @@ async def new_activation_token(
         )
         await db.commit()
 
-        delete_activation_token.apply_async(
-            args=[token], countdown=25 # day
-        )
-
         return {"message": "If the email is correct, the message has been sent"}
     except Exception:
         await db.rollback()
