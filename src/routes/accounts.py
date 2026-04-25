@@ -13,7 +13,7 @@ from notifications.emails import EmailSender
 from config.dependencies import get_email_sender
 
 from schemas.accounts import UserRegistrationResponseSchema, UserRegistrationRequestSchema, MessageResponseSchema, \
-    ActivationRequestSchema
+    ActivationRequestSchema, NewActivationRequestSchema
 from crud.accounts import create_new_user, create_activation_token, get_user_by_activation_token, \
     delete_all_activation_tokens, get_activation_token, get_user_by_email
 from celery_worker.tasks import delete_activation_token
@@ -133,18 +133,17 @@ async def new_activation_token(
         db: DATABASE,
         email_sender: EMAIL_SENDER,
         background_tasks: BackgroundTasks,
-        email: str = Form(...),
-        token: str = Form(...)
+        new_activation_data: Annotated[ActivationRequestSchema, Depends(ActivationRequestSchema.as_form)],
 ):
     try:
-        activation_token = await get_activation_token(db=db, token=token)
+        activation_token = await get_activation_token(db=db, token=new_activation_data.token)
 
         if activation_token and activation_token.expires_at > datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="You cannot request a new email yet"
             )
 
-        user = await get_user_by_email(db=db, email=email)
+        user = await get_user_by_email(db=db, email=new_activation_data.email)
 
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
@@ -152,12 +151,12 @@ async def new_activation_token(
         if user.is_active:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already active")
 
-        await delete_all_activation_tokens(db=db, email=email)
+        await delete_all_activation_tokens(db=db, email=new_activation_data.email)
         token = secrets.token_hex()
         await create_activation_token(db=db, token=token, user=user)
         background_tasks.add_task(
             email_sender.send_activation_email,
-            email=email,
+            email=new_activation_data.email,
             token=token,
             activation_link=str(request.url_for("activate_user")),
             new_activation_link=str(request.url_for("new_activation_token"))

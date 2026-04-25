@@ -4,3 +4,4 @@
 poetry.toml
 __pycache__
 README.md
+commands/run_without_logs_pgadmin.sh

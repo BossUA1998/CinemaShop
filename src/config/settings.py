@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
     SECRET_KEY_ACCESS: str = os.urandom(32).hex()
     SECRET_KEY_REFRESH: str = os.urandom(32).hex()
+    ACCESS_TOKEN_LIFETIME: int = 30 # Minutes
+    REFRESH_TOKEN_LIFETIME: int = 7 # Days
     JWT_SIGNING_ALGORITHM: str = "HS256"
 
     POSTGRES_DB: str = "movies_db"
@@ -26,7 +28,7 @@ class Settings(BaseSettings):
 
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_PORT: str = "587"
-    SMTP_USER: str = "test@localhost.com"
+    SMTP_USER: str = "test@gmail.com"
     SMTP_PASSWORD: str = "1qazcde3"
 
     @field_validator("SMTP_PASSWORD")

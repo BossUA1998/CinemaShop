@@ -44,3 +44,16 @@ class ActivationRequestSchema(BaseModel):
             token: Annotated[str, Form()],
     ) -> "ActivationRequestSchema":
         return cls(token=token)
+
+
+class NewActivationRequestSchema(BaseModel):
+    token: str
+    email: EmailStr
+
+    @classmethod
+    def as_form(
+            cls,
+            token: Annotated[str, Form()],
+            email: Annotated[str, Form()],
+    ) -> "NewActivationRequestSchema":
+        return cls(token=token, email=email)
