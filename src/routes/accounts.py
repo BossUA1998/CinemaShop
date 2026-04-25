@@ -133,9 +133,17 @@ async def new_activation_token(
         db: DATABASE,
         email_sender: EMAIL_SENDER,
         background_tasks: BackgroundTasks,
-        email: str = Form(...)
+        email: str = Form(...),
+        token: str = Form(...)
 ):
     try:
+        activation_token = await get_activation_token(db=db, token=token)
+
+        if activation_token and activation_token.expires_at > datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="You cannot request a new email yet"
+            )
+
         user = await get_user_by_email(db=db, email=email)
 
         if not user:
