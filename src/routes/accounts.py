@@ -14,9 +14,9 @@ from config.dependencies import get_email_sender, get_jwt_manager, get_token
 
 from schemas.accounts import UserRegistrationResponseSchema, UserRegistrationRequestSchema, MessageResponseSchema, \
     ActivationRequestSchema, NewActivationRequestSchema, UserLoginResponseSchema, UserLoginRequestSchema, \
-    UserLogoutRequestSchema
+    UserLogoutRequestSchema, RefreshRequestSchema, RefreshResponseSchema
 from crud.accounts import rollback_decorator, create_new_user, create_activation_token, get_user_by_activation_token, \
-    delete_all_activation_tokens, get_activation_token, get_user_by_email, delete_refresh_tokens
+    delete_all_activation_tokens, get_activation_token, get_user_by_email, delete_refresh_tokens, get_refresh_token
 from security import JWTManager
 
 router = APIRouter()
@@ -230,7 +230,7 @@ async def login_user(
     data = {
         "user_id": user.id,
     }
-    access_token = jwt_manager.create_access_token(data=data)
+    access_token = jwt_manager.create_access_token(data=data, is_refresh=False)
     refresh_token = await jwt_manager.create_refresh_token(db=db, data=data, user=user)
     await db.commit()
     return {
@@ -295,3 +295,40 @@ async def logout_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Your refresh token not found")
     await db.commit()
     return {"message": "Refresh token has been deleted"}
+
+
+@router.post(
+    path="/refresh/",
+    response_model=RefreshResponseSchema,
+    summary="User Refresh",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Refresh token expired",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Refresh token expired"
+                    }
+                }
+            }
+        }
+    }
+)
+async def refresh_user(
+        db: DATABASE,
+        refresh_data: RefreshRequestSchema,
+        jwt_manager: JWT_MANAGER,
+):
+    refresh_token_model = await get_refresh_token(db=db, token=refresh_data.refresh_token)
+    if refresh_token_model.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Refresh token expired",
+        )
+    data = {
+        "user_id": refresh_token_model.user_id
+    }
+    return {
+        "access_token": jwt_manager.create_access_token(data=data, is_refresh=True)
+    }

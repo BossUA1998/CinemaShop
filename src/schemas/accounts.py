@@ -64,10 +64,25 @@ class UserLoginRequestSchema(BaseModel):
     password: str
 
 
-class UserLoginResponseSchema(BaseModel):
+class BaseRefreshToken(BaseModel):
+    refresh_token: str
+
+
+class BaseAccessToken(BaseModel):
     access_token: str
-    refresh_token: str
 
 
-class UserLogoutRequestSchema(BaseModel):
-    refresh_token: str
+class UserLoginResponseSchema(BaseRefreshToken, BaseAccessToken):
+    ...
+
+
+class UserLogoutRequestSchema(BaseRefreshToken):
+    ...
+
+
+class RefreshRequestSchema(BaseRefreshToken):
+    ...
+
+
+class RefreshResponseSchema(BaseAccessToken):
+    ...

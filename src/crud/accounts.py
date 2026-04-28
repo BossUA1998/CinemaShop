@@ -61,21 +61,21 @@ async def create_activation_token(db: AsyncSession, token: str, user: User) -> N
     )
 
 
-async def get_activation_token(db: AsyncSession, token: str) -> ActivationTokenModel:
+async def get_activation_token(db: AsyncSession, token: str) -> Optional[ActivationTokenModel]:
     return await db.scalar(
         select(ActivationTokenModel)
         .where(ActivationTokenModel.token == token)
     )
 
 
-async def get_user_by_email(db: AsyncSession, email: str) -> User:
+async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
     return await db.scalar(
         select(User)
         .where(User.email == email)
     )
 
 
-async def get_user_by_activation_token(db: AsyncSession, token: str) -> User:
+async def get_user_by_activation_token(db: AsyncSession, token: str) -> Optional[User]:
     return await db.scalar(
         select(User)
         .join(ActivationTokenModel)
@@ -107,4 +107,11 @@ async def create_refresh_token(db: AsyncSession, token: str, user: User, expires
     await db.execute(
         insert(RefreshTokenModel)
         .values(token=token, user_id=user.id, expires_at=expires_at)
+    )
+
+
+async def get_refresh_token(db: AsyncSession, token: str) -> Optional[RefreshTokenModel]:
+    return await db.scalar(
+        select(RefreshTokenModel)
+        .where(RefreshTokenModel.token == token)
     )
