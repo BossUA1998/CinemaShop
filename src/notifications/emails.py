@@ -6,25 +6,29 @@ from jinja2 import Environment, FileSystemLoader
 
 class EmailSender:
     def __init__(
-            self,
-            smtp_server: str,
-            smtp_port: int,
-            smtp_user: str,
-            smtp_password: str,
-            path_to_templates: str,
-            activation_email_template_name: str,
-            activation_complete_email_template_name: str,
-            password_email_template_name: str,
-            password_complete_email_template_name: str,
+        self,
+        smtp_server: str,
+        smtp_port: int,
+        smtp_user: str,
+        smtp_password: str,
+        path_to_templates: str,
+        activation_email_template_name: str,
+        activation_complete_email_template_name: str,
+        password_email_template_name: str,
+        password_complete_email_template_name: str,
     ):
         self._smtp_server = smtp_server
         self._smtp_port = smtp_port
         self._smtp_user = smtp_user
         self._smtp_password = smtp_password
         self._activation_email_template_name = activation_email_template_name
-        self._activation_complete_email_template_name = activation_complete_email_template_name
+        self._activation_complete_email_template_name = (
+            activation_complete_email_template_name
+        )
         self._password_email_template_name = password_email_template_name
-        self._password_complete_email_template_name = password_complete_email_template_name
+        self._password_complete_email_template_name = (
+            password_complete_email_template_name
+        )
 
         self._env = Environment(loader=FileSystemLoader(path_to_templates))
 
@@ -37,7 +41,7 @@ class EmailSender:
 
         try:
             async with aiosmtplib.SMTP(
-                    hostname=self._smtp_server, port=self._smtp_port, start_tls=True
+                hostname=self._smtp_server, port=self._smtp_port, start_tls=True
             ) as server:
                 await server.login(self._smtp_user, self._smtp_password)
                 await server.send_message(msg)
@@ -45,9 +49,16 @@ class EmailSender:
             ...
             # TODO implement functional with error
 
-    async def send_activation_email(self, email: str, activation_link: str, new_activation_link: str, token: str):
+    async def send_activation_email(
+        self, email: str, activation_link: str, new_activation_link: str, token: str
+    ):
         template = self._env.get_template(self._activation_email_template_name)
-        html = template.render(action_url=activation_link, new_action_url=new_activation_link, email=email, token=token)
+        html = template.render(
+            action_url=activation_link,
+            new_action_url=new_activation_link,
+            email=email,
+            token=token,
+        )
         subject = "Account Activation"
         await self._send_email(to=email, subject=subject, html=html)
 
@@ -57,8 +68,6 @@ class EmailSender:
         subject = "Account Activation"
         await self._send_email(to=email, subject=subject, html=html)
 
-    async def send_password_reset_email(self, email: str, password_reset_link: str):
-        ...
+    async def send_password_reset_email(self, email: str, password_reset_link: str): ...
 
-    async def send_password_reset_complete_email(self, email: str, login_link: str):
-        ...
+    async def send_password_reset_complete_email(self, email: str, login_link: str): ...

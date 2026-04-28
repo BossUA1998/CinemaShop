@@ -10,7 +10,7 @@ def get_settings() -> Settings:
 
 
 def get_email_sender(
-        settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_settings),
 ) -> EmailSender:
     return EmailSender(
         smtp_server=settings.SMTP_SERVER,
@@ -21,7 +21,7 @@ def get_email_sender(
         activation_email_template_name=settings.ACTIVATION_EMAIL_TEMPLATE_NAME,
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
-        password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME
+        password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
     )
 
 
@@ -31,7 +31,7 @@ def get_token(request: Request) -> str:
     if not authorization_header:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header is missing"
+            detail="Authorization header is missing",
         )
 
     scheme, _, token = authorization_header.partition(" ")
@@ -51,5 +51,5 @@ def get_jwt_manager(settings: Settings = Depends(get_settings)) -> JWTManager:
         refresh_secret_key=settings.SECRET_KEY_REFRESH,
         algorithm=settings.JWT_SIGNING_ALGORITHM,
         access_token_expire_minutes=settings.ACCESS_TOKEN_LIFETIME,
-        refresh_token_expire_days=settings.REFRESH_TOKEN_LIFETIME
+        refresh_token_expire_days=settings.REFRESH_TOKEN_LIFETIME,
     )

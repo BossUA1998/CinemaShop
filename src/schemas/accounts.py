@@ -40,8 +40,8 @@ class ActivationRequestSchema(BaseModel):
 
     @classmethod
     def as_form(
-            cls,
-            token: Annotated[str, Form()],
+        cls,
+        token: Annotated[str, Form()],
     ) -> "ActivationRequestSchema":
         return cls(token=token)
 
@@ -52,9 +52,9 @@ class NewActivationRequestSchema(BaseModel):
 
     @classmethod
     def as_form(
-            cls,
-            token: Annotated[str, Form()],
-            email: Annotated[str, Form()],
+        cls,
+        token: Annotated[str, Form()],
+        email: Annotated[str, Form()],
     ) -> "NewActivationRequestSchema":
         return cls(token=token, email=email)
 
@@ -72,17 +72,13 @@ class BaseAccessToken(BaseModel):
     access_token: str
 
 
-class UserLoginResponseSchema(BaseRefreshToken, BaseAccessToken):
-    ...
+class UserLoginResponseSchema(BaseRefreshToken, BaseAccessToken): ...
 
 
-class UserLogoutRequestSchema(BaseRefreshToken):
-    ...
+class UserLogoutRequestSchema(BaseRefreshToken): ...
 
 
-class RefreshRequestSchema(BaseRefreshToken):
-    ...
+class RefreshRequestSchema(BaseRefreshToken): ...
 
 
-class RefreshResponseSchema(BaseAccessToken):
-    ...
+class RefreshResponseSchema(BaseAccessToken): ...

@@ -5,13 +5,19 @@ from typing import Optional, Iterable
 from sqlalchemy import insert, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import User, UserGroupModel, UserGroupEnum, ActivationTokenModel, RefreshTokenModel
+from database.models import (
+    User,
+    UserGroupModel,
+    UserGroupEnum,
+    ActivationTokenModel,
+    RefreshTokenModel,
+)
 from schemas.accounts import UserRegistrationRequestSchema
 
 
 def rollback_decorator(
-        error_to_raise: Optional[Exception] = None,
-        exceptions: Optional[Iterable[Exception]] = None,
+    error_to_raise: Optional[Exception] = None,
+    exceptions: Optional[Iterable[Exception]] = None,
 ):
     def inner(func):
         if not inspect.iscoroutinefunction(func):
@@ -25,7 +31,9 @@ def rollback_decorator(
                     (arg for arg in args if isinstance(arg, AsyncSession)), None
                 )
                 if not db:
-                    raise TypeError(f"{func.__name__} must have an AsyncSession argument")
+                    raise TypeError(
+                        f"{func.__name__} must have an AsyncSession argument"
+                    )
                 return await func(*args, **kwargs)
             except catch:
                 await db.rollback()
@@ -38,12 +46,13 @@ def rollback_decorator(
     return inner
 
 
-async def create_new_user(db: AsyncSession, user_data: UserRegistrationRequestSchema) -> User:
+async def create_new_user(
+    db: AsyncSession, user_data: UserRegistrationRequestSchema
+) -> User:
     raw_user = User(**user_data.model_dump(exclude={"password"}))
     raw_user.password = user_data.password
     raw_user.group_id = await db.scalar(
-        select(UserGroupModel.id)
-        .where(UserGroupModel.name == UserGroupEnum.USER)
+        select(UserGroupModel.id).where(UserGroupModel.name == UserGroupEnum.USER)
     )
     db.add(raw_user)
     await db.flush()
@@ -53,26 +62,23 @@ async def create_new_user(db: AsyncSession, user_data: UserRegistrationRequestSc
 
 async def create_activation_token(db: AsyncSession, token: str, user: User) -> None:
     await db.execute(
-        insert(ActivationTokenModel)
-        .values(
+        insert(ActivationTokenModel).values(
             token=token,
             user_id=user.id,
         )
     )
 
 
-async def get_activation_token(db: AsyncSession, token: str) -> Optional[ActivationTokenModel]:
+async def get_activation_token(
+    db: AsyncSession, token: str
+) -> Optional[ActivationTokenModel]:
     return await db.scalar(
-        select(ActivationTokenModel)
-        .where(ActivationTokenModel.token == token)
+        select(ActivationTokenModel).where(ActivationTokenModel.token == token)
     )
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
-    return await db.scalar(
-        select(User)
-        .where(User.email == email)
-    )
+    return await db.scalar(select(User).where(User.email == email))
 
 
 async def get_user_by_activation_token(db: AsyncSession, token: str) -> Optional[User]:
@@ -92,26 +98,29 @@ async def delete_all_activation_tokens(db: AsyncSession, email: str) -> bool:
     return db_res.rowcount == 1
 
 
-async def delete_refresh_tokens(db: AsyncSession, token: str, user_id: int = None) -> bool:
-    stmt = (
-        delete(RefreshTokenModel)
-        .where(RefreshTokenModel.token == token)
-    )
+async def delete_refresh_tokens(
+    db: AsyncSession, token: str, user_id: int = None
+) -> bool:
+    stmt = delete(RefreshTokenModel).where(RefreshTokenModel.token == token)
     if user_id:
         stmt = stmt.where(RefreshTokenModel.user_id == user_id)
     db_res = await db.execute(stmt)
     return db_res.rowcount == 1
 
 
-async def create_refresh_token(db: AsyncSession, token: str, user: User, expires_at: datetime) -> None:
+async def create_refresh_token(
+    db: AsyncSession, token: str, user: User, expires_at: datetime
+) -> None:
     await db.execute(
-        insert(RefreshTokenModel)
-        .values(token=token, user_id=user.id, expires_at=expires_at)
+        insert(RefreshTokenModel).values(
+            token=token, user_id=user.id, expires_at=expires_at
+        )
     )
 
 
-async def get_refresh_token(db: AsyncSession, token: str) -> Optional[RefreshTokenModel]:
+async def get_refresh_token(
+    db: AsyncSession, token: str
+) -> Optional[RefreshTokenModel]:
     return await db.scalar(
-        select(RefreshTokenModel)
-        .where(RefreshTokenModel.token == token)
+        select(RefreshTokenModel).where(RefreshTokenModel.token == token)
     )
