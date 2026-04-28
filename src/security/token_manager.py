@@ -1,8 +1,19 @@
-from jose import jwt
+from fastapi import HTTPException, status
+from jose import jwt, JWTError
 from datetime import datetime, timezone, timedelta
+
+from jose.exceptions import JWTClaimsError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database.models import User
 
 
 class TokenManager:
+    """
+    func for create access token is sync
+    func for create refresh tokes is async and takes async session to database
+    """
+
     def __init__(
             self,
             access_secret_key: str,
@@ -17,24 +28,51 @@ class TokenManager:
         self._access_token_expire_minutes = access_token_expire_minutes
         self._refresh_token_expire_days = refresh_token_expire_days
 
-    def _encode_token(self, key: str, expires_at: float, data: dict):
-        data["exp"] = expires_at
+    def _encode_token(self, key: str, data: dict, expires_at: float = None):
+        data_copy = data.copy()
+        if expires_at:
+            data_copy["exp"] = expires_at
         return jwt.encode(
-            claims=data,
+            claims=data_copy,
             key=key,
             algorithm=self._algorithm,
         )
 
     def _decode_token(self, token: str, key: str):
-        return jwt.decode(token=token, key=key, algorithms=self._algorithm)
+        try:
+            return jwt.decode(token=token, key=key, algorithms=self._algorithm)
+        except ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token expired",
+            )
+        except (JWTError, JWTClaimsError):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+            )
 
-    def create_access_token(self, data: dict):
-        expires_delta = datetime.now(timezone.utc) + timedelta(minutes=self._access_token_expire_minutes)
-        return self._encode_token(key=self.__access_secret_key, expires_at=expires_delta, data=data)
+    def create_access_token(self, data: dict, is_refresh: bool = False):
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            minutes=self._access_token_expire_minutes if not is_refresh else self._access_token_expire_minutes // 2
+        )
+        return self._encode_token(
+            key=self.__access_secret_key,
+            expires_at=expires_at.timestamp(),
+            data=data
+        )
 
-    def create_refresh_token(self, data: dict):
-        expires_delta = datetime.now(timezone.utc) + timedelta(days=self._refresh_token_expire_days)
-        return self._encode_token(key=self.__refresh_secret_key, expires_at=expires_delta, data=data)
+    async def create_refresh_token(self, data: dict, user: User, db: AsyncSession):
+        from crud.accounts import create_refresh_token as crud_create_refresh_token
+
+        expires_at = datetime.now(timezone.utc) + timedelta(days=self._refresh_token_expire_days)
+        token = self._encode_token(
+            key=self.__refresh_secret_key,
+            data=data,
+            expires_at=expires_at.timestamp(),
+        )
+        await crud_create_refresh_token(token=token, db=db, user=user)
+        return token
 
     def decode_access_token(self, token: str) -> dict:
         return self._decode_token(token=token, key=self.__access_secret_key)

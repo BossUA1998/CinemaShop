@@ -44,7 +44,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: redis-broker-backend
+    container_name: redis_broker
     ports:
       - "6379:6379"
     command: redis-server

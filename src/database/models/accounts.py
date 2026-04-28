@@ -78,6 +78,9 @@ class User(Base):
     def validate_email(self, key, email: str) -> bool:
         return validators.validate_email(email)
 
+    def verify_password(self, password: str) -> bool:
+        return passwords_manager.verify_password(raw_password=password, hashed_password=self._hashed_password)
+
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"

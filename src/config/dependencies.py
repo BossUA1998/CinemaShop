@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, Request, HTTPException, status
 
 from config.settings import Settings
 from notifications.emails import EmailSender
@@ -25,7 +25,27 @@ def get_email_sender(
     )
 
 
-def get_jwt_manager(settings: Settings = Depends(get_settings)):
+def get_token(request: Request) -> str:
+    authorization_header = request.headers.get("Authorization")
+
+    if not authorization_header:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header is missing"
+        )
+
+    scheme, _, token = authorization_header.partition(" ")
+
+    if scheme.lower() != "bearer" or not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Authorization header format. Expected 'Bearer <token>'",
+        )
+
+    return token
+
+
+def get_jwt_manager(settings: Settings = Depends(get_settings)) -> JWTManager:
     return JWTManager(
         access_secret_key=settings.SECRET_KEY_ACCESS,
         refresh_secret_key=settings.SECRET_KEY_REFRESH,

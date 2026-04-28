@@ -57,3 +57,17 @@ class NewActivationRequestSchema(BaseModel):
             email: Annotated[str, Form()],
     ) -> "NewActivationRequestSchema":
         return cls(token=token, email=email)
+
+
+class UserLoginRequestSchema(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserLoginResponseSchema(BaseModel):
+    access_token: str
+    refresh_token: str
+
+
+class UserLogoutRequestSchema(BaseModel):
+    refresh_token: str
