@@ -1,3 +1,4 @@
+from datetime import datetime
 import inspect
 import functools
 from typing import Optional, Iterable
@@ -102,8 +103,8 @@ async def delete_refresh_tokens(db: AsyncSession, token: str, user_id: int = Non
     return db_res.rowcount == 1
 
 
-async def create_refresh_token(db: AsyncSession, token: str, user: User) -> None:
+async def create_refresh_token(db: AsyncSession, token: str, user: User, expires_at: datetime) -> None:
     await db.execute(
         insert(RefreshTokenModel)
-        .values(token=token, user_id=user.id)
+        .values(token=token, user_id=user.id, expires_at=expires_at)
     )

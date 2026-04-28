@@ -1,5 +1,4 @@
 import secrets
-from calendar import error
 from datetime import datetime, timezone
 
 from typing import Annotated

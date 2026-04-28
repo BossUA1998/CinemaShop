@@ -1,15 +1,17 @@
 from datetime import datetime, timezone
 from celery import shared_task
-from database.models import ActivationTokenModel
+from database.models import ActivationTokenModel, RefreshTokenModel, PasswordResetTokenModel
 from database.session import SyncSessionLocal
 from sqlalchemy import delete
 
 
 @shared_task
-def delete_activation_token():
+def delete_expired_tokens():
     with SyncSessionLocal() as session:
-        session.execute(
-            delete(ActivationTokenModel)
-            .where(ActivationTokenModel.expires_at < datetime.now(timezone.utc))
-        )
+        utc_now = datetime.now(timezone.utc)
+        for table in (ActivationTokenModel, RefreshTokenModel, PasswordResetTokenModel):
+            session.execute(
+                delete(table)
+                .where(table.expires_at < utc_now)
+            )
         session.commit()

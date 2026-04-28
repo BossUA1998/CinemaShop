@@ -120,7 +120,7 @@ class PasswordResetTokenModel(TokenModel):
     user: Mapped["User"] = relationship("User", back_populates="password_reset_token")
 
 
-class RefreshTokenModel(Base):
+class RefreshTokenModel(TokenModel):
     __tablename__ = "refresh_tokens"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

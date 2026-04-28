@@ -69,9 +69,8 @@ class TokenManager:
         token = self._encode_token(
             key=self.__refresh_secret_key,
             data=data,
-            expires_at=expires_at.timestamp(),
         )
-        await crud_create_refresh_token(token=token, db=db, user=user)
+        await crud_create_refresh_token(token=token, db=db, user=user, expires_at=expires_at)
         return token
 
     def decode_access_token(self, token: str) -> dict:
