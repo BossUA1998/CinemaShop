@@ -82,3 +82,24 @@ class RefreshRequestSchema(BaseRefreshToken): ...
 
 
 class RefreshResponseSchema(BaseAccessToken): ...
+
+
+class ResetPasswordRequestSchema(BaseModel):
+    email: EmailStr
+    new_password: str
+    old_password: str = None
+
+
+class ResetPasswordVerifyRequestSchema(BaseModel):
+    email: EmailStr
+    new_password: str
+    token: str
+
+    @classmethod
+    def as_form(
+        cls,
+        email: Annotated[str, Form()],
+        new_password: Annotated[str, Form()],
+        token: Annotated[str, Form()],
+    ) -> "ResetPasswordVerifyRequestSchema":
+        return cls(email=email, new_password=new_password, token=token)

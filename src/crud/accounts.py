@@ -11,6 +11,7 @@ from database.models import (
     UserGroupEnum,
     ActivationTokenModel,
     RefreshTokenModel,
+    PasswordResetTokenModel,
 )
 from schemas.accounts import UserRegistrationRequestSchema
 
@@ -99,11 +100,19 @@ async def delete_all_activation_tokens(db: AsyncSession, email: str) -> bool:
 
 
 async def delete_refresh_tokens(
-    db: AsyncSession, token: str, user_id: int = None
+    db: AsyncSession, token: str = None, user_id: int = None, email: str = None
 ) -> bool:
-    stmt = delete(RefreshTokenModel).where(RefreshTokenModel.token == token)
-    if user_id:
-        stmt = stmt.where(RefreshTokenModel.user_id == user_id)
+    if email:
+        stmt = (
+            delete(RefreshTokenModel)
+            .where(RefreshTokenModel.user_id == User.id)  # join
+            .where(User.email == email)
+        )
+    else:
+        stmt = delete(RefreshTokenModel).where(RefreshTokenModel.token == token)
+        if user_id:
+            stmt = stmt.where(RefreshTokenModel.user_id == user_id)
+
     db_res = await db.execute(stmt)
     return db_res.rowcount == 1
 
@@ -123,4 +132,25 @@ async def get_refresh_token(
 ) -> Optional[RefreshTokenModel]:
     return await db.scalar(
         select(RefreshTokenModel).where(RefreshTokenModel.token == token)
+    )
+
+
+async def delete_password_reset_tokens(db: AsyncSession, user: User) -> None:
+    await db.execute(
+        delete(PasswordResetTokenModel)
+        .where(PasswordResetTokenModel.user_id == user.id)
+    )
+
+
+async def create_password_reset_token(db: AsyncSession, token: str, user: User) -> None:
+    await db.execute(
+        insert(PasswordResetTokenModel).values(token=token, user_id=user.id)
+    )
+
+
+async def get_password_reset_token(
+    db: AsyncSession, token: str
+) -> Optional[PasswordResetTokenModel]:
+    return await db.scalar(
+        select(PasswordResetTokenModel).where(PasswordResetTokenModel.token == token)
     )

@@ -62,12 +62,27 @@ class EmailSender:
         subject = "Account Activation"
         await self._send_email(to=email, subject=subject, html=html)
 
-    async def send_activation_complete_email(self, email: str):
+    async def send_activation_complete_email(self, email: str, login_link: str):
         template = self._env.get_template(self._activation_complete_email_template_name)
-        html = template.render(email=email)
+        html = template.render(email=email, login_link=login_link)
         subject = "Account Activation"
         await self._send_email(to=email, subject=subject, html=html)
 
-    async def send_password_reset_email(self, email: str, password_reset_link: str): ...
+    async def send_password_reset_email(
+        self, email: str, password_reset_link: str, token: str, new_password: str
+    ):
+        template = self._env.get_template(self._password_email_template_name)
+        html = template.render(
+            email=email,
+            token=token,
+            new_password=new_password,
+            password_reset_link=password_reset_link,
+        )
+        subject = "Password Reset"
+        await self._send_email(to=email, subject=subject, html=html)
 
-    async def send_password_reset_complete_email(self, email: str, login_link: str): ...
+    async def send_password_reset_complete_email(self, email: str, login_link: str):
+        template = self._env.get_template(self._password_complete_email_template_name)
+        html = template.render(email=email, login_link=login_link)
+        subject = "Password Reset"
+        await self._send_email(to=email, subject=subject, html=html)

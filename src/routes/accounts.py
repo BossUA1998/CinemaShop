@@ -23,6 +23,8 @@ from schemas.accounts import (
     UserLogoutRequestSchema,
     RefreshRequestSchema,
     RefreshResponseSchema,
+    ResetPasswordRequestSchema,
+    ResetPasswordVerifyRequestSchema,
 )
 from crud.accounts import (
     rollback_decorator,
@@ -34,6 +36,8 @@ from crud.accounts import (
     get_user_by_email,
     delete_refresh_tokens,
     get_refresh_token,
+    create_password_reset_token,
+    get_password_reset_token, delete_password_reset_tokens,
 )
 from security import JWTManager
 
@@ -106,6 +110,7 @@ async def register_user(
 )
 @rollback_decorator()
 async def activate_user(
+    request: Request,
     activation_data: Annotated[
         ActivationRequestSchema, Depends(ActivationRequestSchema.as_form)
     ],
@@ -133,6 +138,7 @@ async def activate_user(
     background_tasks.add_task(
         email_sender.send_activation_complete_email,
         email=user.email,
+        login_link=request.url_for("login_user")
     )
     await db.commit()
     return {"message": "Account activated"}
@@ -335,3 +341,88 @@ async def refresh_user(
         )
     data = {"user_id": refresh_token_model.user_id}
     return {"access_token": jwt_manager.create_access_token(data=data, is_refresh=True)}
+
+
+@router.post(
+    path="/reset-password/",
+    response_model=MessageResponseSchema,
+    summary="User Reset",
+    status_code=status.HTTP_200_OK,
+    responses={},
+)
+@rollback_decorator()
+async def reset_password(
+    request: Request,
+    db: DATABASE,
+    background_tasks: BackgroundTasks,
+    reset_data: ResetPasswordRequestSchema,
+    email_sender: EMAIL_SENDER,
+):
+    user = await get_user_by_email(db=db, email=reset_data.email)
+    if user:
+        if reset_data.old_password and user.verify_password(reset_data.old_password):
+            user.password = reset_data.new_password
+            await db.commit()
+            return {"message": "Password has been reset"}
+
+        await delete_password_reset_tokens(db=db, user=user)
+
+        password_reset_token = secrets.token_hex()
+        await create_password_reset_token(db=db, token=password_reset_token, user=user)
+
+        background_tasks.add_task(
+            email_sender.send_password_reset_email,
+            email=user.email,
+            token=password_reset_token,
+            new_password=reset_data.new_password,
+            password_reset_link=str(request.url_for("reset_password_verify")),
+        )
+
+        await db.commit()
+
+    return {"message": "If the email is correct, check your mailbox"}
+
+
+@router.post(
+    path="/reset-password/verify/",
+    response_model=MessageResponseSchema,
+    summary="User Reset",
+    status_code=status.HTTP_200_OK,
+    responses={},
+)
+@rollback_decorator()
+async def reset_password_verify(
+    request: Request,
+    db: DATABASE,
+    background_tasks: BackgroundTasks,
+    reset_data: Annotated[ResetPasswordVerifyRequestSchema, Depends(ResetPasswordVerifyRequestSchema.as_form)],
+    email_sender: EMAIL_SENDER,
+):
+    user = await get_user_by_email(db=db, email=reset_data.email)
+    token = await get_password_reset_token(db=db, token=reset_data.token)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password reset token not found",
+        )
+    if token.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password reset token expired",
+        )
+    if user and (token.user_id == user.id):
+        user.password = reset_data.new_password
+        await delete_refresh_tokens(db=db, email=user.email)
+        await db.commit()
+
+        background_tasks.add_task(
+            email_sender.send_password_reset_complete_email,
+            email=user.email,
+            login_link=str(request.url_for("login_user")),
+        )
+
+        return {"message": "Password has been reset"}
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Password reset token is invalid",
+    )
