@@ -37,7 +37,8 @@ from crud.accounts import (
     delete_refresh_tokens,
     get_refresh_token,
     create_password_reset_token,
-    get_password_reset_token, delete_password_reset_tokens,
+    get_password_reset_token,
+    delete_password_reset_tokens,
 )
 from security import JWTManager
 
@@ -111,9 +112,7 @@ async def register_user(
 @rollback_decorator()
 async def activate_user(
     request: Request,
-    activation_data: Annotated[
-        ActivationRequestSchema, Depends(ActivationRequestSchema.as_form)
-    ],
+    activation_data: Annotated[ActivationRequestSchema, Depends()],
     db: DATABASE,
     email_sender: EMAIL_SENDER,
     background_tasks: BackgroundTasks,
@@ -138,7 +137,7 @@ async def activate_user(
     background_tasks.add_task(
         email_sender.send_activation_complete_email,
         email=user.email,
-        login_link=request.url_for("login_user")
+        login_link=request.url_for("login_user"),
     )
     await db.commit()
     return {"message": "Account activated"}
@@ -178,9 +177,7 @@ async def new_activation_token(
     db: DATABASE,
     email_sender: EMAIL_SENDER,
     background_tasks: BackgroundTasks,
-    new_activation_data: Annotated[
-        NewActivationRequestSchema, Depends(NewActivationRequestSchema.as_form)
-    ],
+    new_activation_data: Annotated[NewActivationRequestSchema, Depends()],
 ):
     activation_token = await get_activation_token(
         db=db, token=new_activation_data.token
@@ -323,7 +320,13 @@ async def logout_user(
             "content": {
                 "application/json": {"example": {"detail": "Refresh token expired"}}
             },
-        }
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Refresh token not valid or not found in database",
+            "content": {
+                "application/json": {"example": {"detail": "Refresh token not found"}}
+            },
+        },
     },
 )
 async def refresh_user(
@@ -334,6 +337,10 @@ async def refresh_user(
     refresh_token_model = await get_refresh_token(
         db=db, token=refresh_data.refresh_token
     )
+    if not refresh_token_model:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Refresh token not found"
+        )
     if refresh_token_model.expires_at < datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -348,7 +355,6 @@ async def refresh_user(
     response_model=MessageResponseSchema,
     summary="User Reset",
     status_code=status.HTTP_200_OK,
-    responses={},
 )
 @rollback_decorator()
 async def reset_password(
@@ -388,14 +394,36 @@ async def reset_password(
     response_model=MessageResponseSchema,
     summary="User Reset",
     status_code=status.HTTP_200_OK,
-    responses={},
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Password reset token has problems",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "Not found token": {
+                            "summary": "The token was removed from the database either due to its unusability or due to user actions",
+                            "value": {"detail": "Password reset token not found"},
+                        },
+                        "Expired token": {
+                            "summary": "The token has expired and will be deleted soon",
+                            "value": {"detail": "Password reset token expired"},
+                        },
+                        "Invalid token": {
+                            "summary": "The token has an incorrect structure or this is an attempt to forge the token",
+                            "value": {"detail": "Password reset token is invalid"},
+                        },
+                    }
+                }
+            },
+        }
+    },
 )
 @rollback_decorator()
 async def reset_password_verify(
     request: Request,
     db: DATABASE,
     background_tasks: BackgroundTasks,
-    reset_data: Annotated[ResetPasswordVerifyRequestSchema, Depends(ResetPasswordVerifyRequestSchema.as_form)],
+    reset_data: Annotated[ResetPasswordVerifyRequestSchema, Depends()],
     email_sender: EMAIL_SENDER,
 ):
     user = await get_user_by_email(db=db, email=reset_data.email)

@@ -137,8 +137,9 @@ async def get_refresh_token(
 
 async def delete_password_reset_tokens(db: AsyncSession, user: User) -> None:
     await db.execute(
-        delete(PasswordResetTokenModel)
-        .where(PasswordResetTokenModel.user_id == user.id)
+        delete(PasswordResetTokenModel).where(
+            PasswordResetTokenModel.user_id == user.id
+        )
     )
 
 

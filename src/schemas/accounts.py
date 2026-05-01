@@ -35,28 +35,22 @@ class MessageResponseSchema(BaseModel):
     message: str
 
 
-class ActivationRequestSchema(BaseModel):
-    token: str
-
-    @classmethod
-    def as_form(
-        cls,
+class ActivationRequestSchema:
+    def __init__(
+        self,
         token: Annotated[str, Form()],
-    ) -> "ActivationRequestSchema":
-        return cls(token=token)
+    ):
+        self.token = token
 
 
-class NewActivationRequestSchema(BaseModel):
-    token: str
-    email: EmailStr
-
-    @classmethod
-    def as_form(
-        cls,
+class NewActivationRequestSchema:
+    def __init__(
+        self,
         token: Annotated[str, Form()],
-        email: Annotated[str, Form()],
-    ) -> "NewActivationRequestSchema":
-        return cls(token=token, email=email)
+        email: Annotated[EmailStr, Form()],
+    ):
+        self.token = token
+        self.email = email
 
 
 class UserLoginRequestSchema(BaseModel):
@@ -90,16 +84,13 @@ class ResetPasswordRequestSchema(BaseModel):
     old_password: str = None
 
 
-class ResetPasswordVerifyRequestSchema(BaseModel):
-    email: EmailStr
-    new_password: str
-    token: str
-
-    @classmethod
-    def as_form(
-        cls,
-        email: Annotated[str, Form()],
+class ResetPasswordVerifyRequestSchema:
+    def __init__(
+        self,
+        email: Annotated[EmailStr, Form()],
         new_password: Annotated[str, Form()],
         token: Annotated[str, Form()],
-    ) -> "ResetPasswordVerifyRequestSchema":
-        return cls(email=email, new_password=new_password, token=token)
+    ):
+        self.email = email
+        self.new_password = new_password
+        self.token = token
