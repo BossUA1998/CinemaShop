@@ -1,10 +1,7 @@
 from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
-from database.models import accounts
+from database.models import accounts  # noqa
+from database.models import movies  # noqa
 from database.models import Base
 from database.session import sync_postgresql_engine
 

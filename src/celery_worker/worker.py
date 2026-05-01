@@ -11,6 +11,6 @@ celery_app.conf.task_ignore_result = True
 celery_app.conf.beat_schedule = {
     "delete_expired_activation_tokens": {
         "task": "celery_worker.tasks.delete_expired_tokens",
-        "schedule": crontab(hour=0),
+        "schedule": crontab(minute=0, hour=0),
     }
 }
