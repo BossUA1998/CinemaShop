@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends, Request, HTTPException, status
 
 from config.settings import Settings
@@ -53,3 +55,7 @@ def get_jwt_manager(settings: Settings = Depends(get_settings)) -> JWTManager:
         access_token_expire_minutes=settings.ACCESS_TOKEN_LIFETIME,
         refresh_token_expire_days=settings.REFRESH_TOKEN_LIFETIME,
     )
+
+EMAIL_SENDER = Annotated[EmailSender, Depends(get_email_sender)]
+JWT_MANAGER = Annotated[JWTManager, Depends(get_jwt_manager)]
+ACCESS_TOKEN = Annotated[str, Depends(get_token)]

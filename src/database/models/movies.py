@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 from typing import List
 from uuid import UUID
@@ -74,31 +75,50 @@ MovieStars = Table(
 class Genre(Base):
     __tablename__ = "genres"
 
-    name: Mapped[str] = mapped_column(String(63), nullable=False)
+    name: Mapped[str] = mapped_column(String(63), nullable=False, unique=True)
+    movies: Mapped[List["Movie"]] = relationship(
+        "Movie",
+        secondary=MoviesGenres,
+        back_populates="genres"
+    )
 
 
 class Star(Base):
     __tablename__ = "stars"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    movies: Mapped[List["Movie"]] = relationship(
+        "Movie",
+        secondary=MovieStars,
+        back_populates="stars"
+    )
 
 
 class Director(Base):
     __tablename__ = "directors"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    movies: Mapped[List["Movie"]] = relationship(
+        "Movie",
+        secondary=MoviesDirectors,
+        back_populates="directors"
+    )
 
 
 class Certification(Base):
     __tablename__ = "certifications"
 
-    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(31), nullable=False, unique=True)
+    movies: Mapped[List["Movie"]] = relationship(
+        "Movie",
+        back_populates="certification"
+    )
 
 
 class Movie(Base):
     __tablename__ = "movies"
 
-    uuid: Mapped[UUID] = mapped_column(Uuid, unique=True)
+    uuid: Mapped[UUID] = mapped_column(Uuid, unique=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     time: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -110,7 +130,7 @@ class Movie(Base):
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
 
     certification_id: Mapped[int] = mapped_column(
-        ForeignKey("certifications.id", ondelete="RESTRICT")
+        ForeignKey("certifications.id", ondelete="RESTRICT"), nullable=True
     )
     certification: Mapped["Certification"] = relationship(
         "Certification", back_populates="movies"

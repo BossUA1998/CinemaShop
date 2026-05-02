@@ -5,12 +5,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, status, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from database import get_db
-from notifications.emails import EmailSender
-
-from config.dependencies import get_email_sender, get_jwt_manager, get_token
 
 from schemas.accounts import (
     UserRegistrationResponseSchema,
@@ -40,14 +34,10 @@ from crud.accounts import (
     get_password_reset_token,
     delete_password_reset_tokens,
 )
-from security import JWTManager
+from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER
+from database import DATABASE
 
 router = APIRouter()
-
-DATABASE = Annotated[AsyncSession, Depends(get_db)]
-EMAIL_SENDER = Annotated[EmailSender, Depends(get_email_sender)]
-JWT_MANAGER = Annotated[JWTManager, Depends(get_jwt_manager)]
-ACCESS_TOKEN = Annotated[str, Depends(get_token)]
 
 
 @router.post(

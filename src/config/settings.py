@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     BASE_DIR: Path = Path(__file__).parent.parent
 
     PATH_TO_EMAIL_TEMPLATES: str = str(BASE_DIR / "notifications" / "templates")
+    PATH_TO_CSV: str = str(BASE_DIR / "database" / "datasets" / "imdb_movies.csv")
     ACTIVATION_EMAIL_TEMPLATE_NAME: str = "activation_request.html"
     ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME: str = "activation_complete.html"
     PASSWORD_RESET_TEMPLATE_NAME: str = "password_reset_request.html"

@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from sqlalchemy import create_engine
@@ -27,5 +28,11 @@ SyncSessionLocal = sessionmaker(bind=sync_postgresql_engine)
 
 
 async def get_postgresql_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncPostgresqlSessionLocal() as session:
+        yield session
+
+
+@asynccontextmanager
+async def get_postgresql_db_contextmanager() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncPostgresqlSessionLocal() as session:
         yield session
