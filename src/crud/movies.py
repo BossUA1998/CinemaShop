@@ -1,11 +1,14 @@
 from decimal import Decimal
 from typing import List, Optional
 
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
+from database.models import MovieReaction
 from database.models.movies import Movie, Star, Director
+from schemas.movies import ReactionRequestSchema
 
 
 def _get_fts_query(raw_query: str, model_field):
@@ -93,3 +96,18 @@ async def get_movies(
 
     db_res = await db.scalars(stmt)
     return db_res.all()
+
+
+async def set_reaction(db: AsyncSession, reaction: str, user_id: int, movie_id: int):
+    await db.execute(
+        insert(MovieReaction)
+        .values(
+            reaction=reaction,
+            user_id=user_id,
+            movie_id=movie_id,
+        )
+        .on_conflict_do_update(
+            index_elements=["user_id", "movie_id"],
+            set_={"reaction": reaction},
+        )
+    )

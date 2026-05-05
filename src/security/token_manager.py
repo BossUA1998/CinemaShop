@@ -80,7 +80,13 @@ class TokenManager:
         return token
 
     def decode_access_token(self, token: str) -> dict:
-        return self._decode_token(token=token, key=self.__access_secret_key)
+        data = self._decode_token(token=token, key=self.__access_secret_key)
+        if not data.get("user_id"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+            )
+        return data
 
     def decode_refresh_token(self, token: str) -> dict:
         return self._decode_token(token=token, key=self.__refresh_secret_key)

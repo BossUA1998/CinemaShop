@@ -15,7 +15,7 @@ from sqlalchemy import (
     Column,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from database.models.reactions import MovieReaction
 from database.models.base import Base
 
 MoviesGenres = Table(
@@ -149,3 +149,5 @@ class Movie(Base):
     stars: Mapped[List["Star"]] = relationship(
         "Star", secondary=MovieStars, back_populates="movies"
     )
+
+    reactions: Mapped[List["MovieReaction"]] = relationship("MovieReaction")
