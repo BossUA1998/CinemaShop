@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, Request, HTTPException, status
+from fastapi.params import Query
 
 from config.settings import Settings
 from notifications.emails import EmailSender
@@ -56,6 +57,20 @@ def get_jwt_manager(settings: Settings = Depends(get_settings)) -> JWTManager:
         refresh_token_expire_days=settings.REFRESH_TOKEN_LIFETIME,
     )
 
+
+def page_to_limit_offset(
+    settings: Settings = Depends(get_settings),
+    page: int = Query(default=1, ge=1)
+) -> tuple[int, int]:
+
+    limit = settings.DEFAULT_PAGE_SIZE
+    offset = limit * (page - 1)
+
+    return limit, offset
+
+
+LIMIT_OFFSET = Annotated[tuple[int, int], Depends(page_to_limit_offset)]
+SETTINGS = Annotated[Settings, Depends(get_settings)]
 EMAIL_SENDER = Annotated[EmailSender, Depends(get_email_sender)]
 JWT_MANAGER = Annotated[JWTManager, Depends(get_jwt_manager)]
 ACCESS_TOKEN = Annotated[str, Depends(get_token)]

@@ -7,24 +7,15 @@ from sqlalchemy.orm import selectinload
 from database.models.movies import Movie
 
 
-def paginate_db_request(stmt: Select, offset: int, limit: int) -> Select:
-    offset, limit = max(0, offset), max(0, limit)
-    return stmt.offset(offset).limit(limit)
-
-
-async def get_movies(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Movie]:
-    sql = (
+async def get_movies(db: AsyncSession, offset: int, limit: int) -> List[Movie]:
+    stmt = (
         select(Movie)
-        .order_by(Movie.id.desc())
+        .order_by(Movie.id.asc())
         .options(
             selectinload(Movie.genres)
         )
-    )
-
-    stmt = paginate_db_request(
-        stmt=sql,
-        offset=skip,
-        limit=limit,
+        .offset(offset)
+        .limit(limit)
     )
     db_res = await db.scalars(stmt)
     return db_res.all()

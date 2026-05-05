@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     SMTP_USER: str = "test@gmail.com"
     SMTP_PASSWORD: str = "1qazcde3"
 
+    DEFAULT_PAGE_SIZE: int = 100
+
     @field_validator("SMTP_PASSWORD")
     @classmethod
     def clean_smtp_password(cls, value: str) -> str:

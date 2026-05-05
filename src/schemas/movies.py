@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -31,3 +32,9 @@ class MovieResponseSchema(BaseModel):
     @classmethod
     def validate_description(cls, description: str) -> str:
         return description.replace("\"", "\'")
+
+
+class PaginatedMovieResponseSchema(BaseModel):
+    next_page: Optional[str]
+    previous_page: Optional[str]
+    movies: list[MovieResponseSchema]
