@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.session import get_postgresql_db_contextmanager
 from database.models.movies import Movie, Certification, Genre, Director, Star
+from database.models.accounts import UserGroupModel, UserGroupEnum
 
 
 class CSVDatabaseSeeder:
@@ -69,6 +70,10 @@ class CSVDatabaseSeeder:
 
 
     async def seed(self):
+        user_groups = [UserGroupModel(name=name) for name in list(UserGroupEnum)]
+        self._session_db.add_all(user_groups)
+        await self._session_db.flush()
+
         MAX_CHUNK = 1000
 
         records: list = pd.read_csv(self._csv_file_path).to_dict(orient="records")
