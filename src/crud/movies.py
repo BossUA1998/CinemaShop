@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -20,19 +20,21 @@ async def get_movies(
     offset: int,
     limit: int,
 
-    name: str = None,
-    description: str = None,
-    star: str = None,
-    director: str = None,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    star: Optional[str] = None,
+    director: Optional[str] = None,
 
-    year: int = None,
-    imdb_rating: float = None,
-    time: int = None,
-    price: Decimal = None
+    year: Optional[int] = None,
+    imdb_rating: Optional[float] = None,
+    time: int = Optional[None],
+    price: Optional[Decimal] = None,
+
+    order_by_field: Optional[str] = None,
+    is_desc: bool = False,
 ) -> List[Movie]:
     stmt = (
         select(Movie)
-        .order_by(Movie.id.asc())
         .options(
             selectinload(Movie.stars),
             selectinload(Movie.directors)
@@ -79,6 +81,15 @@ async def get_movies(
             stmt = stmt.where(
                 model_field < value
             )
+    if order_by_field:
+        model_order_by_field = getattr(Movie, order_by_field)
+
+        if is_desc:
+            model_order_by_field = model_order_by_field.desc()
+
+        stmt = stmt.order_by(
+            model_order_by_field
+        )
 
     db_res = await db.scalars(stmt)
     return db_res.all()

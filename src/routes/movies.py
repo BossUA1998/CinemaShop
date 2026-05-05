@@ -1,4 +1,6 @@
 from decimal import Decimal
+from enum import StrEnum, auto
+from typing import Optional
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, status, HTTPException, Request, Query
@@ -9,6 +11,12 @@ from crud.movies import get_movies
 from schemas.movies import PaginatedMovieResponseSchema
 
 router = APIRouter()
+
+
+class SortBy(StrEnum):
+    price = auto()
+    year = auto()
+    votes = auto()
 
 
 @router.get(
@@ -32,16 +40,21 @@ async def movies_catalog(
     db: DATABASE,
     limit_offset: LIMIT_OFFSET,
 
-    # query params
-    name: str = Query(default=None),
-    description: str = Query(default=None),
-    star: str = Query(default=None),
-    director: str = Query(default=None),
+    # search
+    name: Optional[str] = Query(default=None),
+    description: Optional[str] = Query(default=None),
+    star: Optional[str] = Query(default=None),
+    director: Optional[str] = Query(default=None),
 
-    year: int = Query(default=None),
-    rating: float = Query(default=None),
-    time: int = Query(default=None),
-    price: Decimal = Query(default=None),
+    # filters
+    year: Optional[int] = Query(default=None),
+    rating: Optional[float] = Query(default=None),
+    time: Optional[int] = Query(default=None),
+    price: Optional[Decimal] = Query(default=None),
+
+    # order by
+    sort_by: Optional[SortBy] = Query(default=None),
+    desc: bool = Query(default=False),
 ):
     limit, offset = limit_offset
     limit = limit + 1 # Needed to determine the next page
@@ -50,14 +63,19 @@ async def movies_catalog(
         db=db,
         limit=limit,
         offset=offset,
+
         name=name,
         description=description,
         star=star,
         director=director,
+
         year=year,
         imdb_rating=rating,
         time=time,
         price=price,
+
+        order_by_field=sort_by,
+        is_desc=desc,
     )
 
     if not movies:
