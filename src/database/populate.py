@@ -141,5 +141,6 @@ async def main() -> None:
             exit()
 
         await seeder.seed()
+        exit()
 
 asyncio.run(main())
