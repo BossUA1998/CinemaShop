@@ -53,7 +53,6 @@ MoviesDirectors = Table(
     ),
 )
 
-
 MovieStars = Table(
     "movie_stars",
     Base.metadata,

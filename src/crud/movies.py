@@ -1,13 +1,13 @@
 from decimal import Decimal
 from typing import List, Optional
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete, update
 from sqlalchemy.orm import selectinload
 
-from database.models import MovieReaction
+from database.models import MovieReaction, FavoriteMovie
 from database.models.movies import Movie, Star, Director
 
 
@@ -205,3 +205,34 @@ async def delete_grade(db: AsyncSession, user_id: int, movie_id: int) -> None:
         await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
     else:
         await _update_reaction_model(db=db, user_id=user_id, movie_id=movie_id, field_to_set_null="grade")
+
+
+async def insert_favorite_movie(db: AsyncSession, user_id: int, movie_id: int) -> None:
+    db_res = await db.execute(
+        insert(FavoriteMovie)
+        .values(
+            user_id=user_id,
+            movie_id=movie_id,
+        )
+        .on_conflict_do_nothing()
+    )
+    if db_res.rowcount == 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The movie has already been added to your favorites"
+        )
+
+
+async def delete_favorite_movie(db: AsyncSession, user_id: int, movie_id: int) -> None:
+    db_res = await db.execute(
+        delete(FavoriteMovie)
+        .where(
+            FavoriteMovie.user_id == user_id,
+            FavoriteMovie.movie_id == movie_id,
+        )
+    )
+    if db_res.rowcount == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The movie has not been added to your favorites"
+        )

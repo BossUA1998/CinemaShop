@@ -25,3 +25,11 @@ class MovieReaction(Base):
             name="ck_grade_range"
         )
     )
+
+
+class FavoriteMovie(Base):
+    __tablename__ = "favorite_movies"
+
+    id = None
+    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False)

@@ -8,10 +8,10 @@ from fastapi import APIRouter, status, HTTPException, Request, Query
 from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTINGS, LIMIT_OFFSET, TOKEN_DATA
 from crud.accounts import rollback_decorator
 from database import DATABASE
-from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment, set_grade, delete_grade
+from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment, set_grade, delete_grade, insert_favorite_movie, delete_favorite_movie
 from schemas.accounts import MessageResponseSchema
 from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema, CommentRequestSchema, \
-    DeleteReactionOrCommentRequestSchema, GradeRequestSchema
+    DeleteReactionOrCommentRequestSchema, GradeRequestSchema, AddToFavoriteRequestSchema
 
 router = APIRouter()
 
@@ -242,3 +242,43 @@ async def delete_movie_comment(
     )
     await db.commit()
     return {"message": "The grade was deleted"}
+
+
+@router.post(
+    path="/favorite/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Favorite",
+    response_model=MessageResponseSchema,
+)
+async def add_movie_to_favorites(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    add_to_favorite_data: AddToFavoriteRequestSchema
+):
+    await insert_favorite_movie(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=add_to_favorite_data.movie_id
+    )
+    await db.commit()
+    return {"message": "The favorite movie was added"}
+
+
+@router.delete(
+    path="/favorite/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Favorite",
+    response_model=MessageResponseSchema,
+)
+async def delete_movie_with_favorites(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    add_to_favorite_data: AddToFavoriteRequestSchema
+):
+    await delete_favorite_movie(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=add_to_favorite_data.movie_id
+    )
+    await db.commit()
+    return {"message": "The favorite movie was deleted"}

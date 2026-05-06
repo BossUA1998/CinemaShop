@@ -60,3 +60,7 @@ class CommentRequestSchema(DeleteReactionOrCommentRequestSchema):
 
 class GradeRequestSchema(DeleteReactionOrCommentRequestSchema):
     grade: int = Field(le=10, ge=1)
+
+
+class AddToFavoriteRequestSchema(DeleteReactionOrCommentRequestSchema):
+    ...

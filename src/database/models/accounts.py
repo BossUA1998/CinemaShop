@@ -5,7 +5,7 @@ from typing import List
 from sqlalchemy import Enum, String, Boolean, DateTime, func, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
-from database.models.reactions import MovieReaction
+from database.models.reactions import MovieReaction, FavoriteMovie
 from database.models.base import Base
 from database.validators import accounts as validators
 
@@ -72,6 +72,7 @@ class User(Base):
     )
 
     reactions: Mapped[List["MovieReaction"]] = relationship("MovieReaction")
+    favorite_movies: Mapped[List["Movie"]] = relationship("Movie", secondary="favorite_movies")
 
     @property
     def password(self) -> None:
