@@ -40,7 +40,13 @@ class TokenManager:
 
     def _decode_token(self, token: str, key: str):
         try:
-            return jwt.decode(token=token, key=key, algorithms=self._algorithm)
+            data = jwt.decode(token=token, key=key, algorithms=self._algorithm)
+            if data.keys() != {"exp", "user_id"}:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Could not validate credentials",
+                )
+            return data
         except ExpiredSignatureError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -70,6 +76,7 @@ class TokenManager:
         expires_at = datetime.now(timezone.utc) + timedelta(
             days=self._refresh_token_expire_days
         )
+        data["exp"] = expires_at.timestamp()
         token = self._encode_token(
             key=self.__refresh_secret_key,
             data=data,
@@ -80,13 +87,8 @@ class TokenManager:
         return token
 
     def decode_access_token(self, token: str) -> dict:
-        data = self._decode_token(token=token, key=self.__access_secret_key)
-        if not data.get("user_id"):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-            )
-        return data
+        return self._decode_token(token=token, key=self.__access_secret_key)
+
 
     def decode_refresh_token(self, token: str) -> dict:
         return self._decode_token(token=token, key=self.__refresh_secret_key)
