@@ -8,9 +8,10 @@ from fastapi import APIRouter, status, HTTPException, Request, Query
 from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTINGS, LIMIT_OFFSET, TOKEN_DATA
 from crud.accounts import rollback_decorator
 from database import DATABASE
-from crud.movies import get_movies, set_reaction, set_comment
+from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment
 from schemas.accounts import MessageResponseSchema
-from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema, CommentRequestSchema
+from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema, CommentRequestSchema, \
+    DeleteReactionOrCommentRequestSchema
 
 router = APIRouter()
 
@@ -142,11 +143,19 @@ async def movie_reaction(
     summary="Movies Reaction",
     status_code=status.HTTP_200_OK,
 )
+@rollback_decorator()
 async def delete_movie_reaction(
     db: DATABASE,
     token_data: TOKEN_DATA,
+    data_for_delete: DeleteReactionOrCommentRequestSchema
 ):
-    ...
+    await delete_reaction(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=data_for_delete.movie_id
+    )
+    await db.commit()
+    return {"message": "The reaction was deleted"}
 
 
 @router.post(
@@ -169,3 +178,24 @@ async def movie_comment(
     )
     await db.commit()
     return {"message": "The comment was recorded"}
+
+
+@router.delete(
+    path="/comment/",
+    response_model=MessageResponseSchema,
+    summary="Movies Reaction",
+    status_code=status.HTTP_200_OK,
+)
+@rollback_decorator()
+async def delete_movie_comment(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    data_for_delete: DeleteReactionOrCommentRequestSchema
+):
+    await delete_comment(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=data_for_delete.movie_id
+    )
+    await db.commit()
+    return {"message": "The comment was deleted"}

@@ -46,11 +46,13 @@ class PaginatedMovieResponseSchema(BaseModel):
     movies: list[MovieResponseSchema]
 
 
-class ReactionRequestSchema(BaseModel):
+class DeleteReactionOrCommentRequestSchema(BaseModel):
+    movie_id: int
+
+
+class ReactionRequestSchema(DeleteReactionOrCommentRequestSchema):
     reaction: bool
-    movie_id: int
 
 
-class CommentRequestSchema(BaseModel):
+class CommentRequestSchema(DeleteReactionOrCommentRequestSchema):
     comment: str
-    movie_id: int

@@ -1,9 +1,10 @@
 from decimal import Decimal
 from typing import List, Optional
 
+from fastapi import HTTPException
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, update
 from sqlalchemy.orm import selectinload
 
 from database.models import MovieReaction
@@ -125,3 +126,59 @@ async def set_comment(db: AsyncSession, comment: str, user_id: int, movie_id: in
             set_={"comment": comment},
         )
     )
+
+
+async def get_reaction_model(db: AsyncSession, user_id: int, movie_id: int) -> MovieReaction:
+    reaction_model = await db.scalar(
+        select(MovieReaction)
+        .where(
+            MovieReaction.user_id == user_id,
+            MovieReaction.movie_id == movie_id,
+        )
+    )
+    if not reaction_model:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reaction not found"
+        )
+    return reaction_model
+
+
+async def _delete_reaction_model(db: AsyncSession, user_id: int, movie_id: int) -> None:
+    await db.execute(
+        delete(MovieReaction)
+        .where(
+            MovieReaction.user_id == user_id,
+            MovieReaction.movie_id == movie_id,
+        )
+    )
+
+
+async def _update_reaction_model(db: AsyncSession, user_id: int, movie_id: int, field_to_set_null: str) -> None:
+    kwargs = {field_to_set_null: None}
+    await db.execute(
+        update(MovieReaction)
+        .where(
+            MovieReaction.user_id == user_id,
+            MovieReaction.movie_id == movie_id,
+        )
+        .values(
+            **kwargs,
+        )
+    )
+
+
+async def delete_reaction(db: AsyncSession, user_id: int, movie_id: int) -> None:
+    reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    if reaction_model.comment is None:
+        await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    else:
+        await _update_reaction_model(db=db, user_id=user_id, movie_id=movie_id, field_to_set_null="reaction")
+
+
+async def delete_comment(db: AsyncSession, user_id: int, movie_id: int) -> None:
+    reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    if reaction_model.reaction is None:
+        await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    else:
+        await _update_reaction_model(db=db, user_id=user_id, movie_id=movie_id, field_to_set_null="comment")
