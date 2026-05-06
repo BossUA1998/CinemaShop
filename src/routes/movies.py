@@ -8,10 +8,10 @@ from fastapi import APIRouter, status, HTTPException, Request, Query
 from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTINGS, LIMIT_OFFSET, TOKEN_DATA
 from crud.accounts import rollback_decorator
 from database import DATABASE
-from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment
+from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment, set_grade, delete_grade
 from schemas.accounts import MessageResponseSchema
 from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema, CommentRequestSchema, \
-    DeleteReactionOrCommentRequestSchema
+    DeleteReactionOrCommentRequestSchema, GradeRequestSchema
 
 router = APIRouter()
 
@@ -60,7 +60,7 @@ async def movies_catalog(
     desc: bool = Query(default=False),
 ):
     limit, offset = limit_offset
-    limit = limit + 1 # Needed to determine the next page
+    limit = limit + 1  # Needed to determine the next page
 
     movies = await get_movies(
         db=db,
@@ -137,25 +137,26 @@ async def movie_reaction(
     return {"message": "The reaction to the film was recorded"}
 
 
-@router.delete(
-    path="/reaction/",
+@router.post(
+    path="/grade/",
     response_model=MessageResponseSchema,
-    summary="Movies Reaction",
+    summary="Movies Grade",
     status_code=status.HTTP_200_OK,
 )
 @rollback_decorator()
-async def delete_movie_reaction(
+async def movie_grade(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    data_for_delete: DeleteReactionOrCommentRequestSchema
+    grade_data: GradeRequestSchema
 ):
-    await delete_reaction(
+    await set_grade(
         db=db,
         user_id=token_data["user_id"],
-        movie_id=data_for_delete.movie_id
+        movie_id=grade_data.movie_id,
+        grade=grade_data.grade
     )
     await db.commit()
-    return {"message": "The reaction was deleted"}
+    return {"message": "The grade was recorded"}
 
 
 @router.post(
@@ -181,6 +182,27 @@ async def movie_comment(
 
 
 @router.delete(
+    path="/reaction/",
+    response_model=MessageResponseSchema,
+    summary="Movies Reaction",
+    status_code=status.HTTP_200_OK,
+)
+@rollback_decorator()
+async def delete_movie_reaction(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    data_for_delete: DeleteReactionOrCommentRequestSchema
+):
+    await delete_reaction(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=data_for_delete.movie_id
+    )
+    await db.commit()
+    return {"message": "The reaction was deleted"}
+
+
+@router.delete(
     path="/comment/",
     response_model=MessageResponseSchema,
     summary="Movies Reaction",
@@ -199,3 +221,24 @@ async def delete_movie_comment(
     )
     await db.commit()
     return {"message": "The comment was deleted"}
+
+
+@router.delete(
+    path="/grade/",
+    response_model=MessageResponseSchema,
+    summary="Movies Grade",
+    status_code=status.HTTP_200_OK,
+)
+@rollback_decorator()
+async def delete_movie_comment(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    data_for_delete: DeleteReactionOrCommentRequestSchema
+):
+    await delete_grade(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=data_for_delete.movie_id
+    )
+    await db.commit()
+    return {"message": "The grade was deleted"}

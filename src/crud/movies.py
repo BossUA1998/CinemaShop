@@ -128,6 +128,21 @@ async def set_comment(db: AsyncSession, comment: str, user_id: int, movie_id: in
     )
 
 
+async def set_grade(db: AsyncSession, grade: int, user_id: int, movie_id: int) -> None:
+    await db.execute(
+        insert(MovieReaction)
+        .values(
+            grade=grade,
+            user_id=user_id,
+            movie_id=movie_id,
+        )
+        .on_conflict_do_update(
+            index_elements=["user_id", "movie_id"],
+            set_={"grade": grade},
+        )
+    )
+
+
 async def get_reaction_model(db: AsyncSession, user_id: int, movie_id: int) -> MovieReaction:
     reaction_model = await db.scalar(
         select(MovieReaction)
@@ -170,7 +185,7 @@ async def _update_reaction_model(db: AsyncSession, user_id: int, movie_id: int, 
 
 async def delete_reaction(db: AsyncSession, user_id: int, movie_id: int) -> None:
     reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
-    if reaction_model.comment is None:
+    if reaction_model.comment is None and reaction_model.grade is None:
         await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
     else:
         await _update_reaction_model(db=db, user_id=user_id, movie_id=movie_id, field_to_set_null="reaction")
@@ -178,7 +193,15 @@ async def delete_reaction(db: AsyncSession, user_id: int, movie_id: int) -> None
 
 async def delete_comment(db: AsyncSession, user_id: int, movie_id: int) -> None:
     reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
-    if reaction_model.reaction is None:
+    if reaction_model.reaction is None and reaction_model.grade is None:
         await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
     else:
         await _update_reaction_model(db=db, user_id=user_id, movie_id=movie_id, field_to_set_null="comment")
+
+
+async def delete_grade(db: AsyncSession, user_id: int, movie_id: int) -> None:
+    reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    if reaction_model.reaction is None and reaction_model.comment is None:
+        await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    else:
+        await _update_reaction_model(db=db, user_id=user_id, movie_id=movie_id, field_to_set_null="grade")

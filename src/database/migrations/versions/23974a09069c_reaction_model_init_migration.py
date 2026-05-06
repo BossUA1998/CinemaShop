@@ -1,8 +1,8 @@
-"""Model reaction init migration
+"""Reaction model init migration
 
-Revision ID: d5a4f0515899
+Revision ID: 23974a09069c
 Revises: f8b727d7f906
-Create Date: 2026-05-06 13:39:01.907642
+Create Date: 2026-05-06 15:00:29.170402
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'd5a4f0515899'
+revision: str = '23974a09069c'
 down_revision: Union[str, Sequence[str], None] = 'f8b727d7f906'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -26,7 +26,9 @@ def upgrade() -> None:
     sa.Column('movie_id', sa.Integer(), nullable=False),
     sa.Column('reaction', sa.Boolean(), nullable=True),
     sa.Column('comment', sa.String(length=1023), nullable=True),
-    sa.CheckConstraint('reaction IS NOT NULL OR comment IS NOT NULL', name='ck_reaction_or_comment'),
+    sa.Column('grade', sa.Integer(), nullable=True),
+    sa.CheckConstraint('grade BETWEEN 1 AND 10', name='ck_grade_range'),
+    sa.CheckConstraint('reaction IS NOT NULL OR comment IS NOT NULL OR grade IS NOT NULL', name='ck_reaction_or_comment_or_grade'),
     sa.ForeignKeyConstraint(['movie_id'], ['movies.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('user_id', 'movie_id')

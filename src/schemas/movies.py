@@ -56,3 +56,7 @@ class ReactionRequestSchema(DeleteReactionOrCommentRequestSchema):
 
 class CommentRequestSchema(DeleteReactionOrCommentRequestSchema):
     comment: str
+
+
+class GradeRequestSchema(DeleteReactionOrCommentRequestSchema):
+    grade: int = Field(le=10, ge=1)
