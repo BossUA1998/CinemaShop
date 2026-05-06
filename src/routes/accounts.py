@@ -231,6 +231,10 @@ async def login_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect email or password"
         )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Your account is not activated, please check your email"
+        )
     data = {
         "user_id": user.id,
     }
