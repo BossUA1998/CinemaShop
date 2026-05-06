@@ -69,6 +69,14 @@ def page_to_limit_offset(
     return limit, offset
 
 
+def token_data(
+    raw_token: str = Depends(get_token),
+    jwt_manager: JWTManager = Depends(get_jwt_manager),
+) -> dict:
+    return jwt_manager.decode_access_token(token=raw_token)
+
+
+TOKEN_DATA = Annotated[dict, Depends(token_data)]
 LIMIT_OFFSET = Annotated[tuple[int, int], Depends(page_to_limit_offset)]
 SETTINGS = Annotated[Settings, Depends(get_settings)]
 EMAIL_SENDER = Annotated[EmailSender, Depends(get_email_sender)]

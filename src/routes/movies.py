@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, status, HTTPException, Request, Query
 
-from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTINGS, LIMIT_OFFSET
+from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTINGS, LIMIT_OFFSET, TOKEN_DATA
 from crud.accounts import rollback_decorator
 from database import DATABASE
 from crud.movies import get_movies, set_reaction, set_comment
@@ -119,16 +119,13 @@ async def movies_catalog(
     response_model=MessageResponseSchema,
     summary="Movies Reaction",
     status_code=status.HTTP_200_OK,
-    responses={}
 )
 @rollback_decorator()
 async def movie_reaction(
     db: DATABASE,
-    token: ACCESS_TOKEN,
-    jwt_manager: JWT_MANAGER,
+    token_data: TOKEN_DATA,
     reaction_data: ReactionRequestSchema,
 ):
-    token_data = jwt_manager.decode_access_token(token=token)
     await set_reaction(
         db=db,
         reaction=reaction_data.reaction,
@@ -139,21 +136,31 @@ async def movie_reaction(
     return {"message": "The reaction to the film was recorded"}
 
 
+@router.delete(
+    path="/reaction/",
+    response_model=MessageResponseSchema,
+    summary="Movies Reaction",
+    status_code=status.HTTP_200_OK,
+)
+async def delete_movie_reaction(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+):
+    ...
+
+
 @router.post(
     path="/comment/",
     response_model=MessageResponseSchema,
     summary="Movies Comment",
     status_code=status.HTTP_200_OK,
-    responses={}
 )
 @rollback_decorator()
 async def movie_comment(
     db: DATABASE,
-    token: ACCESS_TOKEN,
-    jwt_manager: JWT_MANAGER,
+    token_data: TOKEN_DATA,
     comment_data: CommentRequestSchema,
 ):
-    token_data = jwt_manager.decode_access_token(token=token)
     await set_comment(
         db=db,
         comment=comment_data.comment,

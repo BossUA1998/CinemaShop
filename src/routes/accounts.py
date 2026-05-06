@@ -34,7 +34,7 @@ from crud.accounts import (
     get_password_reset_token,
     delete_password_reset_tokens,
 )
-from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER
+from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, TOKEN_DATA
 from database import DATABASE
 
 router = APIRouter()
@@ -288,10 +288,8 @@ async def login_user(
 async def logout_user(
     db: DATABASE,
     refresh_data: UserLogoutRequestSchema,
-    auth_token: ACCESS_TOKEN,
-    jwt_manager: JWT_MANAGER,
+    token_data: TOKEN_DATA
 ):
-    token_data = jwt_manager.decode_access_token(token=auth_token)
     is_logout = await delete_refresh_tokens(
         db=db, token=refresh_data.refresh_token, user_id=token_data["user_id"]
     )
