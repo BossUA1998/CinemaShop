@@ -3,12 +3,11 @@ from typing import List, Optional
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from sqlalchemy.orm import selectinload
 
 from database.models import MovieReaction
 from database.models.movies import Movie, Star, Director
-from schemas.movies import ReactionRequestSchema
 
 
 def _get_fts_query(raw_query: str, model_field):
@@ -98,7 +97,7 @@ async def get_movies(
     return db_res.all()
 
 
-async def set_reaction(db: AsyncSession, reaction: str, user_id: int, movie_id: int):
+async def set_reaction(db: AsyncSession, reaction: bool, user_id: int, movie_id: int) -> None:
     await db.execute(
         insert(MovieReaction)
         .values(
@@ -109,5 +108,20 @@ async def set_reaction(db: AsyncSession, reaction: str, user_id: int, movie_id: 
         .on_conflict_do_update(
             index_elements=["user_id", "movie_id"],
             set_={"reaction": reaction},
+        )
+    )
+
+
+async def set_comment(db: AsyncSession, comment: str, user_id: int, movie_id: int):
+    await db.execute(
+        insert(MovieReaction)
+        .values(
+            comment=comment,
+            user_id=user_id,
+            movie_id=movie_id,
+        )
+        .on_conflict_do_update(
+            index_elements=["user_id", "movie_id"],
+            set_={"comment": comment},
         )
     )

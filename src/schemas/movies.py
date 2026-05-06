@@ -5,7 +5,6 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 from database.models.movies import Star, Director
-from database.models.reactions import ReactionType
 
 
 class MovieResponseSchema(BaseModel):
@@ -48,5 +47,10 @@ class PaginatedMovieResponseSchema(BaseModel):
 
 
 class ReactionRequestSchema(BaseModel):
-    reaction: ReactionType
+    reaction: bool
+    movie_id: int
+
+
+class CommentRequestSchema(BaseModel):
+    comment: str
     movie_id: int

@@ -8,8 +8,9 @@ from fastapi import APIRouter, status, HTTPException, Request, Query
 from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTINGS, LIMIT_OFFSET
 from crud.accounts import rollback_decorator
 from database import DATABASE
-from crud.movies import get_movies, set_reaction
-from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema
+from crud.movies import get_movies, set_reaction, set_comment
+from schemas.accounts import MessageResponseSchema
+from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema, CommentRequestSchema
 
 router = APIRouter()
 
@@ -115,7 +116,7 @@ async def movies_catalog(
 
 @router.post(
     path="/reaction/",
-    # response_model=,
+    response_model=MessageResponseSchema,
     summary="Movies Reaction",
     status_code=status.HTTP_200_OK,
     responses={}
@@ -128,7 +129,6 @@ async def movie_reaction(
     reaction_data: ReactionRequestSchema,
 ):
     token_data = jwt_manager.decode_access_token(token=token)
-    print(token_data)
     await set_reaction(
         db=db,
         reaction=reaction_data.reaction,
@@ -137,3 +137,28 @@ async def movie_reaction(
     )
     await db.commit()
     return {"message": "The reaction to the film was recorded"}
+
+
+@router.post(
+    path="/comment/",
+    response_model=MessageResponseSchema,
+    summary="Movies Comment",
+    status_code=status.HTTP_200_OK,
+    responses={}
+)
+@rollback_decorator()
+async def movie_comment(
+    db: DATABASE,
+    token: ACCESS_TOKEN,
+    jwt_manager: JWT_MANAGER,
+    comment_data: CommentRequestSchema,
+):
+    token_data = jwt_manager.decode_access_token(token=token)
+    await set_comment(
+        db=db,
+        comment=comment_data.comment,
+        user_id=token_data["user_id"],
+        movie_id=comment_data.movie_id
+    )
+    await db.commit()
+    return {"message": "The comment was recorded"}
