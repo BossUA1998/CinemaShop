@@ -24,6 +24,34 @@ class SortBy(StrEnum):
     votes = auto()
 
 
+def paginate_movies(movies: list[Movie], request: Request, limit: int) -> dict:
+    current_page = int(request.query_params.get("page", 1))
+    current_path = request.url.path
+
+    is_next_page = bool(
+        movies.pop(-1)
+        if len(movies) == limit
+        else False
+    )
+    is_previous_page = current_page > 1
+
+    base_params = dict(request.query_params)
+    base_params.pop("page", None)
+    return {
+        "next_page": (
+            f"{current_path}?{urlencode(base_params | {"page": current_page + 1})}"
+            if is_next_page
+            else None
+        ),
+        "previous_page": (
+            f"{current_path}?{urlencode(base_params | {"page": current_page - 1})}"
+            if is_previous_page
+            else None
+        ),
+        "movies": movies,
+    }
+
+
 @router.get(
     path="/catalog/",
     response_model=PaginatedMovieResponseSchema,
@@ -89,32 +117,7 @@ async def movies_catalog(
             detail="Movies not found"
         )
 
-    current_page = int(request.query_params.get("page", 1))
-    current_path = request.url.path
-
-    is_next_page = bool(
-        movies.pop(-1)
-        if len(movies) == limit
-        else False
-    )
-    is_previous_page = current_page > 1
-
-    base_params = dict(request.query_params)
-    base_params.pop("page", None)
-
-    return {
-        "next_page": (
-            f"{current_path}?{urlencode(base_params | {"page": current_page + 1})}"
-            if is_next_page
-            else None
-        ),
-        "previous_page": (
-            f"{current_path}?{urlencode(base_params | {"page": current_page - 1})}"
-            if is_previous_page
-            else None
-        ),
-        "movies": movies,
-    }
+    return paginate_movies(movies=movies, request=request, limit=limit)
 
 
 @router.get(
@@ -306,3 +309,61 @@ async def delete_movie_with_favorites(
     )
     await db.commit()
     return {"message": "The favorite movie was deleted"}
+
+
+@router.get(
+    path="/favorite/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Favorite",
+    response_model=PaginatedMovieResponseSchema,
+)
+async def get_favorite_movies(
+    request: Request,
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    limit_offset: LIMIT_OFFSET,
+
+    # search
+    name: Optional[str] = Query(default=None),
+    description: Optional[str] = Query(default=None),
+    star: Optional[str] = Query(default=None),
+    director: Optional[str] = Query(default=None),
+
+    # filters
+    year: Optional[int] = Query(default=None),
+    rating: Optional[float] = Query(default=None),
+    time: Optional[int] = Query(default=None),
+    price: Optional[Decimal] = Query(default=None),
+
+    # order by
+    sort_by: Optional[SortBy] = Query(default=None),
+    desc: bool = Query(default=False),
+):
+    limit, offset = limit_offset
+    limit = limit + 1
+
+    favorite_movies = await get_movies(
+        db=db,
+        limit=limit,
+        offset=offset,
+        user_id_for_select_favorite_movies=token_data["user_id"],
+
+        name=name,
+        description=description,
+        star=star,
+        director=director,
+
+        year=year,
+        imdb_rating=rating,
+        time=time,
+        price=price,
+
+        order_by_field=sort_by,
+        is_desc=desc,
+    )
+    if not favorite_movies:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Favorite movies not found"
+        )
+    return paginate_movies(movies=favorite_movies, request=request, limit=limit)

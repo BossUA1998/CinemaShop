@@ -150,3 +150,4 @@ class Movie(Base):
     )
 
     reactions: Mapped[List["MovieReaction"]] = relationship("MovieReaction")
+    favorite_movies: Mapped[List["FavoriteMovie"]] = relationship("FavoriteMovie")

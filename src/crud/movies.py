@@ -22,6 +22,7 @@ async def get_movies(
     db: AsyncSession,
     offset: int,
     limit: int,
+    user_id_for_select_favorite_movies: Optional[int] = None,
 
     name: Optional[str] = None,
     description: Optional[str] = None,
@@ -45,6 +46,14 @@ async def get_movies(
         .offset(offset)
         .limit(limit)
     )
+    if user_id_for_select_favorite_movies:
+        user_id = user_id_for_select_favorite_movies
+
+        stmt = (
+            stmt
+            .join(Movie.favorite_movies)
+            .where(FavoriteMovie.user_id == user_id)
+        )
 
     if name:
         stmt = stmt.where(
@@ -113,7 +122,6 @@ async def get_movie(db: AsyncSession, movie_id: int) -> Movie:
         )
     )
     return await db.scalar(stmt)
-
 
 
 async def set_reaction(db: AsyncSession, reaction: bool, user_id: int, movie_id: int) -> None:
@@ -200,10 +208,13 @@ async def _update_reaction_model(db: AsyncSession, user_id: int, movie_id: int, 
         )
     )
 
+
 reaction_field_already_none = lambda message: HTTPException(
     status_code=status.HTTP_409_CONFLICT,
     detail=message
 )
+
+
 async def delete_reaction(db: AsyncSession, user_id: int, movie_id: int) -> None:
     reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
     if reaction_model.reaction is None:
