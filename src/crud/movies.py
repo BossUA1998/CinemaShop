@@ -8,7 +8,7 @@ from sqlalchemy import select, func, delete, update
 from sqlalchemy.orm import selectinload, joinedload
 
 from database.models import MovieReaction, FavoriteMovie
-from database.models.movies import Movie, Star, Director
+from database.models.movies import Movie, Star, Director, Genre
 
 
 def _get_fts_query(raw_query: str, model_field):
@@ -274,3 +274,21 @@ async def delete_favorite_movie(db: AsyncSession, user_id: int, movie_id: int) -
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The movie has not been added to your favorites"
         )
+
+
+async def get_all_genres_with_movies_count(db: AsyncSession) -> List[Genre]:
+    return await db.execute(
+        select(Genre, func.count(Movie.id))
+        .outerjoin(Genre.movies)
+        .group_by(Genre.id)
+    )
+
+
+async def get_genre_with_movies_by_name(db: AsyncSession, genre_name: str) -> Genre:
+    return await db.scalar(
+        select(Genre)
+        .where(func.lower(Genre.name) == genre_name.lower())
+        .options(
+            selectinload(Genre.movies)
+        )
+    )

@@ -7,7 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator, computed_field
 
 from database.models import User, MovieReaction
-from database.models.movies import Star, Director, Certification, Genre
+from database.models.movies import Star, Director, Certification, Genre, Movie
 
 
 class MovieResponseSchema(BaseModel):
@@ -96,3 +96,18 @@ class GradeRequestSchema(DeleteReactionOrCommentRequestSchema):
 
 class AddToFavoriteRequestSchema(DeleteReactionOrCommentRequestSchema):
     ...
+
+
+class GenresResponseSchema(BaseModel):
+    genre: str
+    movies: int
+
+
+class GenreDetailResponseSchema(BaseModel):
+    genre: str = Field(validation_alias="name")
+    movies: list[str]
+
+    @field_validator("movies", mode="before")
+    @classmethod
+    def validate_movies(cls, movies: list[Movie]) -> list[str]:
+        return [movie.name for movie in movies]

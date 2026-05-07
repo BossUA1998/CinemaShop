@@ -10,10 +10,12 @@ from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTING
 from crud.accounts import rollback_decorator
 from database import DATABASE
 from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment, set_grade, delete_grade, \
-    insert_favorite_movie, delete_favorite_movie, get_movie
+    insert_favorite_movie, delete_favorite_movie, get_movie, get_all_genres_with_movies_count, \
+    get_genre_with_movies_by_name
 from schemas.accounts import MessageResponseSchema
 from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema, CommentRequestSchema, \
-    DeleteReactionOrCommentRequestSchema, GradeRequestSchema, AddToFavoriteRequestSchema, MovieDetailResponseSchema
+    DeleteReactionOrCommentRequestSchema, GradeRequestSchema, AddToFavoriteRequestSchema, MovieDetailResponseSchema, \
+    GenresResponseSchema, GenreDetailResponseSchema
 
 router = APIRouter()
 
@@ -367,3 +369,32 @@ async def get_favorite_movies(
             detail="Favorite movies not found"
         )
     return paginate_movies(movies=favorite_movies, request=request, limit=limit)
+
+
+@router.get(
+    path="/genres/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Genres",
+    response_model=list[GenresResponseSchema]
+)
+async def get_genres(
+    db: DATABASE,
+):
+    genres_with_movies_count = await get_all_genres_with_movies_count(db=db)
+    return [
+        GenresResponseSchema(genre=genre.name, movies=movies_genre)
+        for genre, movies_genre in genres_with_movies_count
+    ]
+
+
+@router.get(
+    path="/genres/{genre_name}/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Genres",
+    response_model=GenreDetailResponseSchema
+)
+async def genre_detail(
+    db: DATABASE,
+    genre_name: str
+):
+    return await get_genre_with_movies_by_name(db=db, genre_name=genre_name)
