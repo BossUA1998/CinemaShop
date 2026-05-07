@@ -1,10 +1,13 @@
+from collections import Counter
 from datetime import timedelta
 from decimal import Decimal
+from functools import cached_property
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, computed_field
 
-from database.models.movies import Star, Director
+from database.models import User, MovieReaction
+from database.models.movies import Star, Director, Certification, Genre
 
 
 class MovieResponseSchema(BaseModel):
@@ -38,6 +41,35 @@ class MovieResponseSchema(BaseModel):
     @classmethod
     def validate_description(cls, description: str) -> str:
         return description.replace("\"", "\'")
+
+
+class _CommentSchema(BaseModel):
+    user_email: str = Field(validation_alias="user")
+    comment: str
+
+    @field_validator("user_email", mode="before")
+    @classmethod
+    def validate_user_email(cls, user: User) -> str:
+        email, _, email_host = user.email.partition("@")
+        return f"{email[0]}{"*" * len(email[1:-1])}{email[-1]}@{email_host}"
+
+
+class MovieDetailResponseSchema(MovieResponseSchema):
+    certification: str
+    genres: list[str]
+    comments: list[_CommentSchema] = Field(validation_alias="reactions")
+    likes: int
+    dislikes: int
+
+    @field_validator("certification", mode="before")
+    @classmethod
+    def validate_certification(cls, certification: Certification) -> str:
+        return certification.name
+
+    @field_validator("genres", mode="before")
+    @classmethod
+    def validate_genres(cls, genres: list[Genre]) -> list[str]:
+        return [genre.name for genre in genres]
 
 
 class PaginatedMovieResponseSchema(BaseModel):

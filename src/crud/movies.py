@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete, update
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from database.models import MovieReaction, FavoriteMovie
 from database.models.movies import Movie, Star, Director
@@ -98,6 +98,24 @@ async def get_movies(
     return db_res.all()
 
 
+async def get_movie(db: AsyncSession, movie_id: int) -> Movie:
+    stmt = (
+        select(Movie)
+        .options(
+            joinedload(Movie.certification),
+            selectinload(Movie.stars),
+            selectinload(Movie.directors),
+            selectinload(Movie.genres),
+            selectinload(Movie.reactions).selectinload(MovieReaction.user)
+        )
+        .where(
+            Movie.id == movie_id
+        )
+    )
+    return await db.scalar(stmt)
+
+
+
 async def set_reaction(db: AsyncSession, reaction: bool, user_id: int, movie_id: int) -> None:
     await db.execute(
         insert(MovieReaction)
@@ -182,9 +200,14 @@ async def _update_reaction_model(db: AsyncSession, user_id: int, movie_id: int, 
         )
     )
 
-
+reaction_field_already_none = lambda message: HTTPException(
+    status_code=status.HTTP_409_CONFLICT,
+    detail=message
+)
 async def delete_reaction(db: AsyncSession, user_id: int, movie_id: int) -> None:
     reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    if reaction_model.reaction is None:
+        raise reaction_field_already_none(message="The reaction was not recorded")
     if reaction_model.comment is None and reaction_model.grade is None:
         await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
     else:
@@ -193,6 +216,8 @@ async def delete_reaction(db: AsyncSession, user_id: int, movie_id: int) -> None
 
 async def delete_comment(db: AsyncSession, user_id: int, movie_id: int) -> None:
     reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    if reaction_model.comment is None:
+        raise reaction_field_already_none(message="The comment was not recorded")
     if reaction_model.reaction is None and reaction_model.grade is None:
         await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
     else:
@@ -201,6 +226,8 @@ async def delete_comment(db: AsyncSession, user_id: int, movie_id: int) -> None:
 
 async def delete_grade(db: AsyncSession, user_id: int, movie_id: int) -> None:
     reaction_model = await get_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
+    if reaction_model.grade is None:
+        raise reaction_field_already_none(message="The grade was not recorded")
     if reaction_model.reaction is None and reaction_model.comment is None:
         await _delete_reaction_model(db=db, user_id=user_id, movie_id=movie_id)
     else:

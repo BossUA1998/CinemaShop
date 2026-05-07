@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, String, CheckConstraint, Boolean, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.models import Base
 
@@ -14,6 +14,8 @@ class MovieReaction(Base):
     reaction: Mapped[bool] = mapped_column(Boolean, nullable=True)
     comment: Mapped[str] = mapped_column(String(1023), nullable=True)
     grade: Mapped[int] = mapped_column(Integer, nullable=True)
+
+    user: Mapped["User"] = relationship("User", back_populates="reactions")
 
     __table_args__ = (
         CheckConstraint(

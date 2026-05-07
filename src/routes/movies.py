@@ -1,3 +1,4 @@
+from collections import Counter
 from decimal import Decimal
 from enum import StrEnum, auto
 from typing import Optional
@@ -8,10 +9,11 @@ from fastapi import APIRouter, status, HTTPException, Request, Query
 from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTINGS, LIMIT_OFFSET, TOKEN_DATA
 from crud.accounts import rollback_decorator
 from database import DATABASE
-from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment, set_grade, delete_grade, insert_favorite_movie, delete_favorite_movie
+from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment, set_grade, delete_grade, \
+    insert_favorite_movie, delete_favorite_movie, get_movie
 from schemas.accounts import MessageResponseSchema
 from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema, CommentRequestSchema, \
-    DeleteReactionOrCommentRequestSchema, GradeRequestSchema, AddToFavoriteRequestSchema
+    DeleteReactionOrCommentRequestSchema, GradeRequestSchema, AddToFavoriteRequestSchema, MovieDetailResponseSchema
 
 router = APIRouter()
 
@@ -113,6 +115,28 @@ async def movies_catalog(
         ),
         "movies": movies,
     }
+
+
+@router.get(
+    path="/catalog/{movie_id}/",
+    response_model=MovieDetailResponseSchema,
+    status_code=status.HTTP_200_OK,
+    summary="Movie Detail",
+    responses={}
+)
+async def movie_detail(
+    movie_id: int,
+    db: DATABASE,
+):
+    movie = await get_movie(db=db, movie_id=movie_id)
+
+    reactions = Counter(reaction_model.reaction for reaction_model in movie.reactions)
+    likes = reactions[True]
+    dislikes = reactions[False]
+    movie.likes = likes
+    movie.dislikes = dislikes
+
+    return movie
 
 
 @router.post(
