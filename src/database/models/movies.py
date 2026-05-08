@@ -76,9 +76,7 @@ class Genre(Base):
 
     name: Mapped[str] = mapped_column(String(63), nullable=False, unique=True)
     movies: Mapped[List["Movie"]] = relationship(
-        "Movie",
-        secondary=MoviesGenres,
-        back_populates="genres"
+        "Movie", secondary=MoviesGenres, back_populates="genres"
     )
 
 
@@ -87,9 +85,7 @@ class Star(Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     movies: Mapped[List["Movie"]] = relationship(
-        "Movie",
-        secondary=MovieStars,
-        back_populates="stars"
+        "Movie", secondary=MovieStars, back_populates="stars"
     )
 
 
@@ -98,9 +94,7 @@ class Director(Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     movies: Mapped[List["Movie"]] = relationship(
-        "Movie",
-        secondary=MoviesDirectors,
-        back_populates="directors"
+        "Movie", secondary=MoviesDirectors, back_populates="directors"
     )
 
 
@@ -109,8 +103,7 @@ class Certification(Base):
 
     name: Mapped[str] = mapped_column(String(31), nullable=False, unique=True)
     movies: Mapped[List["Movie"]] = relationship(
-        "Movie",
-        back_populates="certification"
+        "Movie", back_populates="certification"
     )
 
 

@@ -89,6 +89,5 @@ class TokenManager:
     def decode_access_token(self, token: str) -> dict:
         return self._decode_token(token=token, key=self.__access_secret_key)
 
-
     def decode_refresh_token(self, token: str) -> dict:
         return self._decode_token(token=token, key=self.__refresh_secret_key)

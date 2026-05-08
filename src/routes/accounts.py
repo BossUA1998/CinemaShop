@@ -226,14 +226,15 @@ async def new_activation_token(
 async def login_user(
     db: DATABASE, jwt_manager: JWT_MANAGER, user_data: UserLoginRequestSchema
 ):
-    user = await get_user_by_email(db=db, email=user_data.email)
+    user = await get_user_by_email(db=db, email=user_data.email.lower())
     if not user or not user.verify_password(user_data.password):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect email or password"
         )
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Your account is not activated, please check your email"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not activated, please check your email",
         )
     data = {
         "user_id": user.id,
@@ -286,9 +287,7 @@ async def login_user(
 )
 @rollback_decorator()
 async def logout_user(
-    db: DATABASE,
-    refresh_data: UserLogoutRequestSchema,
-    token_data: TOKEN_DATA
+    db: DATABASE, refresh_data: UserLogoutRequestSchema, token_data: TOKEN_DATA
 ):
     is_logout = await delete_refresh_tokens(
         db=db, token=refresh_data.refresh_token, user_id=token_data["user_id"]

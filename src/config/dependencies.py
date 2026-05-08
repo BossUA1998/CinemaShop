@@ -59,8 +59,7 @@ def get_jwt_manager(settings: Settings = Depends(get_settings)) -> JWTManager:
 
 
 def page_to_limit_offset(
-    settings: Settings = Depends(get_settings),
-    page: int = Query(default=1, ge=1)
+    settings: Settings = Depends(get_settings), page: int = Query(default=1, ge=1)
 ) -> tuple[int, int]:
 
     limit = settings.DEFAULT_PAGE_SIZE

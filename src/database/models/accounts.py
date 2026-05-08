@@ -71,8 +71,12 @@ class User(Base):
         "UserProfile", back_populates="user", cascade="all, delete-orphan"
     )
 
-    reactions: Mapped[List["MovieReaction"]] = relationship("MovieReaction", back_populates="user")
-    favorite_movies_by_user: Mapped[List["Movie"]] = relationship("Movie", secondary="favorite_movies")
+    reactions: Mapped[List["MovieReaction"]] = relationship(
+        "MovieReaction", back_populates="user"
+    )
+    favorite_movies_by_user: Mapped[List["Movie"]] = relationship(
+        "Movie", secondary="favorite_movies"
+    )
 
     @property
     def password(self) -> None:

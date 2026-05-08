@@ -17,32 +17,26 @@ class CSVDatabaseSeeder:
         self._csv_file_path = file_path
         self._session_db = session_db
 
-
     async def db_is_populated(self) -> bool:
-        db_res = await self._session_db.scalars(
-            select(Movie)
-            .limit(1)
-        )
+        db_res = await self._session_db.scalars(select(Movie).limit(1))
         return db_res.first() is not None
-
 
     def _get_movie_instance(self, record: dict) -> Movie:
         name = record["Series_Title"]
         year = int(record["Released_Year"])
-        time = int(re.compile(r'\d+').search(record["Runtime"]).group())
+        time = int(re.compile(r"\d+").search(record["Runtime"]).group())
         imdb = float(record["IMDB_Rating"])
         votes = int(record["No_of_Votes"])
-        meta_score = int(record["Meta_score"]) if not pd.isna(record["Meta_score"]) else None
-        gross = int(record["Gross"].replace(",", "")) if not pd.isna(record["Gross"]) else None
-        description = record["Overview"]
-        price = Decimal(
-            str(
-                round(
-                    random.uniform(10, 100),
-                    2
-                )
-            )
+        meta_score = (
+            int(record["Meta_score"]) if not pd.isna(record["Meta_score"]) else None
         )
+        gross = (
+            int(record["Gross"].replace(",", ""))
+            if not pd.isna(record["Gross"])
+            else None
+        )
+        description = record["Overview"]
+        price = Decimal(str(round(random.uniform(10, 100), 2)))
 
         return Movie(
             name=name,
@@ -58,8 +52,7 @@ class CSVDatabaseSeeder:
 
     async def _get_or_create_instance(self, instance, instance_name_field: str):
         model = await self._session_db.scalar(
-            select(instance)
-            .where(instance.name == instance_name_field)
+            select(instance).where(instance.name == instance_name_field)
         )
         if not model:
             model = instance(name=instance_name_field)
@@ -67,7 +60,6 @@ class CSVDatabaseSeeder:
             await self._session_db.flush()
 
         return model
-
 
     async def seed(self):
         user_groups = [UserGroupModel(name=name) for name in list(UserGroupEnum)]
@@ -78,12 +70,7 @@ class CSVDatabaseSeeder:
 
         records: list = pd.read_csv(self._csv_file_path).to_dict(orient="records")
         chunks_records_generator = np.array_split(
-            records,
-            (
-                len(records) // MAX_CHUNK
-                if len(records) > MAX_CHUNK
-                else 1
-            )
+            records, (len(records) // MAX_CHUNK if len(records) > MAX_CHUNK else 1)
         )
         for records in chunks_records_generator:
             movies = []
@@ -91,29 +78,31 @@ class CSVDatabaseSeeder:
                 movie = self._get_movie_instance(record)
 
                 genres_names = frozenset(
-                    value.strip()
-                    for value in record["Genre"].split(",")
+                    value.strip() for value in record["Genre"].split(",")
                 )
                 directors_names = frozenset(
-                    value.strip()
-                    for value in record["Director"].split(",")
+                    value.strip() for value in record["Director"].split(",")
                 )
                 stars_names = frozenset(
-                    record[f"Star{number}"]
-                    for number in range(1, 5)
+                    record[f"Star{number}"] for number in range(1, 5)
                 )
 
                 genres, directors, stars = [
                     [
-                        await self._get_or_create_instance(instance=instance, instance_name_field=field_name)
+                        await self._get_or_create_instance(
+                            instance=instance, instance_name_field=field_name
+                        )
                         for field_name in names
                     ]
-                    for instance, names in zip((Genre, Director, Star), (genres_names, directors_names, stars_names))
+                    for instance, names in zip(
+                        (Genre, Director, Star),
+                        (genres_names, directors_names, stars_names),
+                    )
                 ]
                 certification = (
                     await self._get_or_create_instance(
                         instance=Certification,
-                        instance_name_field=record["Certificate"]
+                        instance_name_field=record["Certificate"],
                     )
                     if not pd.isna(record["Certificate"])
                     else None
@@ -137,8 +126,7 @@ async def main() -> None:
 
     async with get_postgresql_db_contextmanager() as db_session:
         seeder = CSVDatabaseSeeder(
-            file_path=settings.PATH_TO_CSV,
-            session_db=db_session
+            file_path=settings.PATH_TO_CSV, session_db=db_session
         )
 
         if await seeder.db_is_populated():
@@ -147,5 +135,6 @@ async def main() -> None:
 
         await seeder.seed()
         exit()
+
 
 asyncio.run(main())

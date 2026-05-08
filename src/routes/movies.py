@@ -6,16 +6,50 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, status, HTTPException, Request, Query
 
-from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, SETTINGS, LIMIT_OFFSET, TOKEN_DATA
+from config.dependencies import (
+    EMAIL_SENDER,
+    ACCESS_TOKEN,
+    JWT_MANAGER,
+    SETTINGS,
+    LIMIT_OFFSET,
+    TOKEN_DATA,
+)
 from crud.accounts import rollback_decorator
 from database import DATABASE
-from crud.movies import get_movies, set_reaction, set_comment, delete_reaction, delete_comment, set_grade, delete_grade, \
-    insert_favorite_movie, delete_favorite_movie, get_movie, get_all_genres_with_movies_count, \
-    get_genre_with_movies_by_name
+from crud.movies import (
+    get_movies,
+    set_reaction,
+    set_comment,
+    delete_reaction,
+    delete_comment,
+    set_grade,
+    delete_grade,
+    insert_favorite_movie,
+    delete_favorite_movie,
+    get_movie,
+    get_all_genres_with_movies_count,
+    get_genre_with_movies_by_name,
+    set_comment_answer,
+    delete_comment_answer,
+    set_reaction_to_comment,
+    delete_comment_answer_reaction,
+)
 from schemas.accounts import MessageResponseSchema
-from schemas.movies import PaginatedMovieResponseSchema, ReactionRequestSchema, CommentRequestSchema, \
-    DeleteReactionOrCommentRequestSchema, GradeRequestSchema, AddToFavoriteRequestSchema, MovieDetailResponseSchema, \
-    GenresResponseSchema, GenreDetailResponseSchema
+from schemas.movies import (
+    PaginatedMovieResponseSchema,
+    ReactionRequestSchema,
+    CommentRequestSchema,
+    DeleteReactionOrCommentRequestSchema,
+    GradeRequestSchema,
+    AddToFavoriteRequestSchema,
+    MovieDetailResponseSchema,
+    GenresResponseSchema,
+    GenreDetailResponseSchema,
+    CommentAnswerRequestSchema,
+    DeleteCommentAnswerRequestSchema,
+    CommentReactionRequestSchema,
+    DeleteCommentReactionRequestSchema,
+)
 
 router = APIRouter()
 
@@ -30,11 +64,7 @@ def paginate_movies(movies: list[Movie], request: Request, limit: int) -> dict:
     current_page = int(request.query_params.get("page", 1))
     current_path = request.url.path
 
-    is_next_page = bool(
-        movies.pop(-1)
-        if len(movies) == limit
-        else False
-    )
+    is_next_page = bool(movies.pop(-1) if len(movies) == limit else False)
     is_previous_page = current_page > 1
 
     base_params = dict(request.query_params)
@@ -62,31 +92,24 @@ def paginate_movies(movies: list[Movie], request: Request, limit: int) -> dict:
     responses={
         status.HTTP_404_NOT_FOUND: {
             "description": "A page value greater than the current position was passed",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Page not found"}
-                }
-            }
+            "content": {"application/json": {"example": {"detail": "Page not found"}}},
         }
-    }
+    },
 )
 async def movies_catalog(
     request: Request,
     db: DATABASE,
     limit_offset: LIMIT_OFFSET,
-
     # search
     name: Optional[str] = Query(default=None),
     description: Optional[str] = Query(default=None),
     star: Optional[str] = Query(default=None),
     director: Optional[str] = Query(default=None),
-
     # filters
     year: Optional[int] = Query(default=None),
     rating: Optional[float] = Query(default=None),
     time: Optional[int] = Query(default=None),
     price: Optional[Decimal] = Query(default=None),
-
     # order by
     sort_by: Optional[SortBy] = Query(default=None),
     desc: bool = Query(default=False),
@@ -98,25 +121,21 @@ async def movies_catalog(
         db=db,
         limit=limit,
         offset=offset,
-
         name=name,
         description=description,
         star=star,
         director=director,
-
         year=year,
         imdb_rating=rating,
         time=time,
         price=price,
-
         order_by_field=sort_by,
         is_desc=desc,
     )
 
     if not movies:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Movies not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movies not found"
         )
 
     return paginate_movies(movies=movies, request=request, limit=limit)
@@ -127,7 +146,7 @@ async def movies_catalog(
     response_model=MovieDetailResponseSchema,
     status_code=status.HTTP_200_OK,
     summary="Movie Detail",
-    responses={}
+    responses={},
 )
 async def movie_detail(
     movie_id: int,
@@ -160,7 +179,7 @@ async def movie_reaction(
         db=db,
         reaction=reaction_data.reaction,
         user_id=token_data["user_id"],
-        movie_id=reaction_data.movie_id
+        movie_id=reaction_data.movie_id,
     )
     await db.commit()
     return {"message": "The reaction to the film was recorded"}
@@ -174,15 +193,13 @@ async def movie_reaction(
 )
 @rollback_decorator()
 async def movie_grade(
-    db: DATABASE,
-    token_data: TOKEN_DATA,
-    grade_data: GradeRequestSchema
+    db: DATABASE, token_data: TOKEN_DATA, grade_data: GradeRequestSchema
 ):
     await set_grade(
         db=db,
         user_id=token_data["user_id"],
         movie_id=grade_data.movie_id,
-        grade=grade_data.grade
+        grade=grade_data.grade,
     )
     await db.commit()
     return {"message": "The grade was recorded"}
@@ -204,10 +221,100 @@ async def movie_comment(
         db=db,
         comment=comment_data.comment,
         user_id=token_data["user_id"],
-        movie_id=comment_data.movie_id
+        movie_id=comment_data.movie_id,
     )
     await db.commit()
     return {"message": "The comment was recorded"}
+
+
+@router.post(
+    path="/comment/answer/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Comment",
+    response_model=MessageResponseSchema,
+)
+@rollback_decorator()
+async def movie_comment_answer(
+    db: DATABASE,
+    comment_answer_data: CommentAnswerRequestSchema,
+    token_data: TOKEN_DATA,
+):
+    await set_comment_answer(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=comment_answer_data.movie_id,
+        comment_user_id=comment_answer_data.user_id,
+        comment=comment_answer_data.comment,
+    )
+    await db.commit()
+    return {"message": "The answer to comment was recorded"}
+
+
+@router.delete(
+    path="/comment/answer/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Comment",
+    response_model=MessageResponseSchema,
+)
+@rollback_decorator()
+async def delete_movie_comment_answer(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    comment_answer_data: DeleteCommentAnswerRequestSchema,
+):
+    await delete_comment_answer(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=comment_answer_data.movie_id,
+        comment_user_id=comment_answer_data.user_id,
+    )
+    await db.commit()
+    return {"message": "The comment answer was deleted"}
+
+
+@router.post(
+    path="/comment/reaction/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Comment",
+    response_model=MessageResponseSchema,
+)
+@rollback_decorator()
+async def movie_comment_reaction(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    reaction_data: CommentReactionRequestSchema,
+):
+    await set_reaction_to_comment(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=reaction_data.movie_id,
+        comment_user_id=reaction_data.user_id,
+        reaction=reaction_data.reaction,
+    )
+    await db.commit()
+    return {"message": "The reaction to the comment was recorded"}
+
+
+@router.delete(
+    path="/comment/reaction/",
+    status_code=status.HTTP_200_OK,
+    summary="Movies Comment",
+    response_model=MessageResponseSchema,
+)
+@rollback_decorator()
+async def delete_movie_comment_reaction(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    reaction_data: DeleteCommentReactionRequestSchema,
+):
+    await delete_comment_answer_reaction(
+        db=db,
+        user_id=token_data["user_id"],
+        movie_id=reaction_data.movie_id,
+        comment_user_id=reaction_data.user_id,
+    )
+    await db.commit()
+    return {"message": "The reaction to the comment was deleted"}
 
 
 @router.delete(
@@ -220,12 +327,10 @@ async def movie_comment(
 async def delete_movie_reaction(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    data_for_delete: DeleteReactionOrCommentRequestSchema
+    data_for_delete: DeleteReactionOrCommentRequestSchema,
 ):
     await delete_reaction(
-        db=db,
-        user_id=token_data["user_id"],
-        movie_id=data_for_delete.movie_id
+        db=db, user_id=token_data["user_id"], movie_id=data_for_delete.movie_id
     )
     await db.commit()
     return {"message": "The reaction was deleted"}
@@ -241,12 +346,10 @@ async def delete_movie_reaction(
 async def delete_movie_comment(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    data_for_delete: DeleteReactionOrCommentRequestSchema
+    data_for_delete: DeleteReactionOrCommentRequestSchema,
 ):
     await delete_comment(
-        db=db,
-        user_id=token_data["user_id"],
-        movie_id=data_for_delete.movie_id
+        db=db, user_id=token_data["user_id"], movie_id=data_for_delete.movie_id
     )
     await db.commit()
     return {"message": "The comment was deleted"}
@@ -259,15 +362,13 @@ async def delete_movie_comment(
     status_code=status.HTTP_200_OK,
 )
 @rollback_decorator()
-async def delete_movie_comment(
+async def delete_movie_grade(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    data_for_delete: DeleteReactionOrCommentRequestSchema
+    data_for_delete: DeleteReactionOrCommentRequestSchema,
 ):
     await delete_grade(
-        db=db,
-        user_id=token_data["user_id"],
-        movie_id=data_for_delete.movie_id
+        db=db, user_id=token_data["user_id"], movie_id=data_for_delete.movie_id
     )
     await db.commit()
     return {"message": "The grade was deleted"}
@@ -282,12 +383,10 @@ async def delete_movie_comment(
 async def add_movie_to_favorites(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    add_to_favorite_data: AddToFavoriteRequestSchema
+    add_to_favorite_data: AddToFavoriteRequestSchema,
 ):
     await insert_favorite_movie(
-        db=db,
-        user_id=token_data["user_id"],
-        movie_id=add_to_favorite_data.movie_id
+        db=db, user_id=token_data["user_id"], movie_id=add_to_favorite_data.movie_id
     )
     await db.commit()
     return {"message": "The favorite movie was added"}
@@ -302,12 +401,10 @@ async def add_movie_to_favorites(
 async def delete_movie_with_favorites(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    add_to_favorite_data: AddToFavoriteRequestSchema
+    add_to_favorite_data: AddToFavoriteRequestSchema,
 ):
     await delete_favorite_movie(
-        db=db,
-        user_id=token_data["user_id"],
-        movie_id=add_to_favorite_data.movie_id
+        db=db, user_id=token_data["user_id"], movie_id=add_to_favorite_data.movie_id
     )
     await db.commit()
     return {"message": "The favorite movie was deleted"}
@@ -324,19 +421,16 @@ async def get_favorite_movies(
     db: DATABASE,
     token_data: TOKEN_DATA,
     limit_offset: LIMIT_OFFSET,
-
     # search
     name: Optional[str] = Query(default=None),
     description: Optional[str] = Query(default=None),
     star: Optional[str] = Query(default=None),
     director: Optional[str] = Query(default=None),
-
     # filters
     year: Optional[int] = Query(default=None),
     rating: Optional[float] = Query(default=None),
     time: Optional[int] = Query(default=None),
     price: Optional[Decimal] = Query(default=None),
-
     # order by
     sort_by: Optional[SortBy] = Query(default=None),
     desc: bool = Query(default=False),
@@ -349,24 +443,20 @@ async def get_favorite_movies(
         limit=limit,
         offset=offset,
         user_id_for_select_favorite_movies=token_data["user_id"],
-
         name=name,
         description=description,
         star=star,
         director=director,
-
         year=year,
         imdb_rating=rating,
         time=time,
         price=price,
-
         order_by_field=sort_by,
         is_desc=desc,
     )
     if not favorite_movies:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Favorite movies not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Favorite movies not found"
         )
     return paginate_movies(movies=favorite_movies, request=request, limit=limit)
 
@@ -375,7 +465,7 @@ async def get_favorite_movies(
     path="/genres/",
     status_code=status.HTTP_200_OK,
     summary="Movies Genres",
-    response_model=list[GenresResponseSchema]
+    response_model=list[GenresResponseSchema],
 )
 async def get_genres(
     db: DATABASE,
@@ -391,10 +481,7 @@ async def get_genres(
     path="/genres/{genre_name}/",
     status_code=status.HTTP_200_OK,
     summary="Movies Genres",
-    response_model=GenreDetailResponseSchema
+    response_model=GenreDetailResponseSchema,
 )
-async def genre_detail(
-    db: DATABASE,
-    genre_name: str
-):
+async def genre_detail(db: DATABASE, genre_name: str):
     return await get_genre_with_movies_by_name(db=db, genre_name=genre_name)

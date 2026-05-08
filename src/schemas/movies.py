@@ -1,12 +1,10 @@
-from collections import Counter
 from datetime import timedelta
 from decimal import Decimal
-from functools import cached_property
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator, computed_field
+from pydantic import BaseModel, Field, field_validator
 
-from database.models import User, MovieReaction
+from database.models import MovieReaction
 from database.models.movies import Star, Director, Certification, Genre, Movie
 
 
@@ -40,26 +38,41 @@ class MovieResponseSchema(BaseModel):
     @field_validator("description")
     @classmethod
     def validate_description(cls, description: str) -> str:
-        return description.replace("\"", "\'")
-
-
-class _CommentSchema(BaseModel):
-    user_email: str = Field(validation_alias="user")
-    comment: str
-
-    @field_validator("user_email", mode="before")
-    @classmethod
-    def validate_user_email(cls, user: User) -> str:
-        email, _, email_host = user.email.partition("@")
-        return f"{email[0]}{"*" * len(email[1:-1])}{email[-1]}@{email_host}"
+        return description.replace('"', "'")
 
 
 class MovieDetailResponseSchema(MovieResponseSchema):
     certification: str
     genres: list[str]
-    comments: list[_CommentSchema] = Field(validation_alias="reactions")
+
+    comments: list[dict] = Field(validation_alias="reactions")
     likes: int
     dislikes: int
+
+    @field_validator("comments", mode="before")
+    @classmethod
+    def validate_comments(cls, comments: list[MovieReaction]) -> list[dict]:
+        return [
+            {
+                "user_id": reaction.user_id,
+                "comment": reaction.comment,
+                "likes": sum(
+                    1
+                    for comment_reaction in reaction.comment_answers
+                    if comment_reaction.reaction
+                ),
+                "comment_answers": [
+                    {
+                        "user_id": answer.user_id,
+                        "comment": answer.comment,
+                    }
+                    for answer in reaction.comment_answers
+                    if answer.comment
+                ],
+            }
+            for reaction in comments
+            if reaction.comment
+        ]
 
     @field_validator("certification", mode="before")
     @classmethod
@@ -82,20 +95,42 @@ class DeleteReactionOrCommentRequestSchema(BaseModel):
     movie_id: int
 
 
-class ReactionRequestSchema(DeleteReactionOrCommentRequestSchema):
+class ReactionRequestSchema(BaseModel):
+    movie_id: int
     reaction: bool
 
 
-class CommentRequestSchema(DeleteReactionOrCommentRequestSchema):
+class CommentRequestSchema(BaseModel):
+    movie_id: int
     comment: str
 
 
-class GradeRequestSchema(DeleteReactionOrCommentRequestSchema):
+class RawCommentAnswerSchema(BaseModel):
+    user_id: int
+    movie_id: int
+
+
+class CommentAnswerRequestSchema(RawCommentAnswerSchema):
+    comment: str
+
+
+class CommentReactionRequestSchema(RawCommentAnswerSchema):
+    reaction: bool
+
+
+class DeleteCommentAnswerRequestSchema(RawCommentAnswerSchema): ...
+
+
+class DeleteCommentReactionRequestSchema(RawCommentAnswerSchema): ...
+
+
+class GradeRequestSchema(BaseModel):
+    movie_id: int
     grade: int = Field(le=10, ge=1)
 
 
-class AddToFavoriteRequestSchema(DeleteReactionOrCommentRequestSchema):
-    ...
+class AddToFavoriteRequestSchema(BaseModel):
+    movie_id: int
 
 
 class GenresResponseSchema(BaseModel):
