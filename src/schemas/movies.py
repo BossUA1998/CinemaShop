@@ -10,22 +10,39 @@ from database.models.movies import Star, Director, Certification, Genre, Movie
 from schemas.base_schemas import _RawSchemaWithMovieId
 
 
-class MovieResponseSchema(BaseModel):
-    id: int
+class _RawMovieResponseSchema(BaseModel):
     name: str
+    price: Decimal
     year: int
-    stars: list[str]
-    director: str = Field(validation_alias="directors")
+
+
+class MovieInCartResponseSchema(_RawMovieResponseSchema):
+    genres: list[str]
+
+    @field_validator("genres", mode="before")
+    @classmethod
+    def validate_genres(cls, genres: list[Genre]) -> list[str]:
+        return [genre.name for genre in genres]
+
+
+class MovieResponseSchema(_RawMovieResponseSchema):
+    id: int
     time: str
+    stars: list[str]
     votes: int
     description: str
-    price: Decimal
     rating: float = Field(validation_alias="imdb")
+    director: str = Field(validation_alias="directors")
 
     @field_validator("time", mode="before")
     @classmethod
     def validate_time(cls, time_in_minutes: int) -> str:
         return str(timedelta(minutes=time_in_minutes))
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, description: str) -> str:
+        return description.replace('"', "'")
 
     @field_validator("stars", mode="before")
     @classmethod
@@ -36,11 +53,6 @@ class MovieResponseSchema(BaseModel):
     @classmethod
     def validate_director(cls, director: list[Director]) -> list[str]:
         return director[0].name
-
-    @field_validator("description")
-    @classmethod
-    def validate_description(cls, description: str) -> str:
-        return description.replace('"', "'")
 
 
 class MovieDetailResponseSchema(MovieResponseSchema):
@@ -117,16 +129,13 @@ class CommentReactionRequestSchema(_RawCommentAnswerSchema):
     reaction: bool
 
 
-class DeleteReactionRequestSchema(_RawSchemaWithMovieId):
-    ...
+class DeleteReactionRequestSchema(_RawSchemaWithMovieId): ...
 
 
-class DeleteCommentRequestSchema(_RawSchemaWithMovieId):
-    ...
+class DeleteCommentRequestSchema(_RawSchemaWithMovieId): ...
 
 
-class DeleteGradeRequestSchema(_RawSchemaWithMovieId):
-    ...
+class DeleteGradeRequestSchema(_RawSchemaWithMovieId): ...
 
 
 class DeleteCommentAnswerRequestSchema(_RawCommentAnswerSchema): ...
@@ -135,8 +144,7 @@ class DeleteCommentAnswerRequestSchema(_RawCommentAnswerSchema): ...
 class DeleteCommentReactionRequestSchema(_RawCommentAnswerSchema): ...
 
 
-class AddToFavoriteRequestSchema(_RawSchemaWithMovieId):
-    ...
+class AddToFavoriteRequestSchema(_RawSchemaWithMovieId): ...
 
 
 class GenresResponseSchema(BaseModel):

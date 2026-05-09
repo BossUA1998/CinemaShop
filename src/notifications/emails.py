@@ -91,13 +91,17 @@ class EmailSender:
         subject = "Password Reset"
         await self._send_email(to=email, subject=subject, html=html)
 
-    async def send_reply_notification_to_comment(self, email: str, comment: str, movie_name: str):
+    async def send_reply_notification_to_comment(
+        self, email: str, comment: str, movie_name: str
+    ):
         template = self._env.get_template(self.notification_for_comment_answer)
         html = template.render(comment=comment, movie_name=movie_name)
         subject = "Reply Notification"
         await self._send_email(to=email, subject=subject, html=html)
 
-    async def send_notification_about_reaction_to_comment(self, email: str, movie_name: str):
+    async def send_notification_about_reaction_to_comment(
+        self, email: str, movie_name: str
+    ):
         template = self._env.get_template(self.notification_for_comment_reaction)
         html = template.render(movie_name=movie_name)
         subject = "Reaction Notification"

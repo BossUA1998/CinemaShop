@@ -30,7 +30,8 @@ from crud.movies import (
     set_comment_answer,
     delete_comment_answer,
     set_reaction_to_comment,
-    delete_comment_answer_reaction, get_lite_movie,
+    delete_comment_answer_reaction,
+    get_lite_movie,
 )
 from schemas.base_schemas import MessageResponseSchema
 from schemas.movies import (
@@ -259,7 +260,7 @@ async def movie_comment_answer(
         email_sender.send_reply_notification_to_comment,
         email=comment_user.email,
         comment=comment_answer_data.comment,
-        movie_name=movie.name
+        movie_name=movie.name,
     )
     await db.commit()
     return {"message": "The answer to comment was recorded"}

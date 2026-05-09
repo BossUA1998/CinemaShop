@@ -1,5 +1,8 @@
 from pydantic import BaseModel
+from schemas.base_schemas import _RawSchemaWithMovieId
 
 
-class AddToCartRequestSchema(BaseModel):
-    movie_id: int
+class AddToCartRequestSchema(_RawSchemaWithMovieId): ...
+
+
+class DeleteFromCartRequestSchema(_RawSchemaWithMovieId): ...
