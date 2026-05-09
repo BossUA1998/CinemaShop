@@ -4,7 +4,7 @@ from enum import StrEnum, auto
 from typing import Optional
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, status, HTTPException, Request, Query
+from fastapi import APIRouter, status, HTTPException, Request, Query, BackgroundTasks
 
 from config.dependencies import (
     EMAIL_SENDER,
@@ -14,7 +14,7 @@ from config.dependencies import (
     LIMIT_OFFSET,
     TOKEN_DATA,
 )
-from crud.accounts import rollback_decorator
+from crud.accounts import rollback_decorator, get_user_by_id
 from database import DATABASE
 from crud.movies import (
     get_movies,
@@ -32,7 +32,7 @@ from crud.movies import (
     set_comment_answer,
     delete_comment_answer,
     set_reaction_to_comment,
-    delete_comment_answer_reaction,
+    delete_comment_answer_reaction, get_lite_movie,
 )
 from schemas.accounts import MessageResponseSchema
 from schemas.movies import (
@@ -237,6 +237,8 @@ async def movie_comment(
 async def movie_comment_answer(
     db: DATABASE,
     comment_answer_data: CommentAnswerRequestSchema,
+    background_tasks: BackgroundTasks,
+    email_sender: EMAIL_SENDER,
     token_data: TOKEN_DATA,
 ):
     await set_comment_answer(
@@ -245,6 +247,19 @@ async def movie_comment_answer(
         movie_id=comment_answer_data.movie_id,
         comment_user_id=comment_answer_data.user_id,
         comment=comment_answer_data.comment,
+    )
+
+    comment_user_id = comment_answer_data.user_id
+    comment_user = await get_user_by_id(db=db, user_id=comment_user_id)
+
+    movie_id = comment_answer_data.movie_id
+    movie = await get_lite_movie(db=db, movie_id=movie_id)
+
+    background_tasks.add_task(
+        email_sender.send_reply_notification_to_comment,
+        email=comment_user.email,
+        comment=comment_answer_data.comment,
+        movie_name=movie.name
     )
     await db.commit()
     return {"message": "The answer to comment was recorded"}
@@ -283,6 +298,8 @@ async def movie_comment_reaction(
     db: DATABASE,
     token_data: TOKEN_DATA,
     reaction_data: CommentReactionRequestSchema,
+    background_tasks: BackgroundTasks,
+    email_sender: EMAIL_SENDER,
 ):
     await set_reaction_to_comment(
         db=db,
@@ -291,6 +308,20 @@ async def movie_comment_reaction(
         comment_user_id=reaction_data.user_id,
         reaction=reaction_data.reaction,
     )
+
+    if reaction_data.reaction:
+        movie_id = reaction_data.movie_id
+        movie = await get_lite_movie(db=db, movie_id=movie_id)
+
+        comment_user_id = reaction_data.user_id
+        comment_user = await get_user_by_id(db=db, user_id=comment_user_id)
+
+        background_tasks.add_task(
+            email_sender.send_notification_about_reaction_to_comment,
+            email=comment_user.email,
+            movie_name=movie.name,
+        )
+
     await db.commit()
     return {"message": "The reaction to the comment was recorded"}
 

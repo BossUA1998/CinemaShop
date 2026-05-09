@@ -19,6 +19,13 @@ def _get_fts_query(raw_query: str, model_field):
     )
 
 
+async def get_lite_movie(db: AsyncSession, movie_id: int) -> Optional[Movie]:
+    return await db.scalar(
+        select(Movie)
+        .where(Movie.id == movie_id)
+    )
+
+
 async def get_movies(
     db: AsyncSession,
     offset: int,

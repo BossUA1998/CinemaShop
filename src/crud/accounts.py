@@ -82,6 +82,10 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
     return await db.scalar(select(User).where(User.email == email))
 
 
+async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
+    return await db.scalar(select(User).where(User.id == user_id))
+
+
 async def get_user_by_activation_token(db: AsyncSession, token: str) -> Optional[User]:
     return await db.scalar(
         select(User)
