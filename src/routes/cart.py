@@ -1,10 +1,10 @@
 from fastapi import APIRouter, status
 
-from crud.accounts import rollback_decorator
+from crud.base_crud import rollback_decorator
 from crud.cart import add_movie_to_cart_and_create_cart, delete_movie_from_cart_by_movie_id
 from database import DATABASE
 from config.dependencies import TOKEN_DATA
-from schemas.accounts import MessageResponseSchema
+from schemas.base_schemas import MessageResponseSchema
 from schemas.cart import AddToCartRequestSchema
 
 router = APIRouter()

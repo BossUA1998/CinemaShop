@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field, field_validator
 from database.models import MovieReaction
 from database.models.movies import Star, Director, Certification, Genre, Movie
 
+from schemas.base_schemas import _RawSchemaWithMovieId
+
 
 class MovieResponseSchema(BaseModel):
     id: int
@@ -91,46 +93,50 @@ class PaginatedMovieResponseSchema(BaseModel):
     movies: list[MovieResponseSchema]
 
 
-class DeleteReactionOrCommentRequestSchema(BaseModel):
-    movie_id: int
-
-
-class ReactionRequestSchema(BaseModel):
-    movie_id: int
+class ReactionRequestSchema(_RawSchemaWithMovieId):
     reaction: bool
 
 
-class CommentRequestSchema(BaseModel):
-    movie_id: int
+class CommentRequestSchema(_RawSchemaWithMovieId):
     comment: str
 
 
-class RawCommentAnswerSchema(BaseModel):
-    user_id: int
-    movie_id: int
-
-
-class CommentAnswerRequestSchema(RawCommentAnswerSchema):
-    comment: str
-
-
-class CommentReactionRequestSchema(RawCommentAnswerSchema):
-    reaction: bool
-
-
-class DeleteCommentAnswerRequestSchema(RawCommentAnswerSchema): ...
-
-
-class DeleteCommentReactionRequestSchema(RawCommentAnswerSchema): ...
-
-
-class GradeRequestSchema(BaseModel):
-    movie_id: int
+class GradeRequestSchema(_RawSchemaWithMovieId):
     grade: int = Field(le=10, ge=1)
 
 
-class AddToFavoriteRequestSchema(BaseModel):
-    movie_id: int
+class _RawCommentAnswerSchema(_RawSchemaWithMovieId):
+    user_id: int
+
+
+class CommentAnswerRequestSchema(_RawCommentAnswerSchema):
+    comment: str
+
+
+class CommentReactionRequestSchema(_RawCommentAnswerSchema):
+    reaction: bool
+
+
+class DeleteReactionRequestSchema(_RawSchemaWithMovieId):
+    ...
+
+
+class DeleteCommentRequestSchema(_RawSchemaWithMovieId):
+    ...
+
+
+class DeleteGradeRequestSchema(_RawSchemaWithMovieId):
+    ...
+
+
+class DeleteCommentAnswerRequestSchema(_RawCommentAnswerSchema): ...
+
+
+class DeleteCommentReactionRequestSchema(_RawCommentAnswerSchema): ...
+
+
+class AddToFavoriteRequestSchema(_RawSchemaWithMovieId):
+    ...
 
 
 class GenresResponseSchema(BaseModel):

@@ -31,10 +31,6 @@ class UserRegistrationResponseSchema(BaseModel):
     email: EmailStr
 
 
-class MessageResponseSchema(BaseModel):
-    message: str
-
-
 class ActivationRequestSchema:
     def __init__(
         self,
