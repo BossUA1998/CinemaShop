@@ -92,38 +92,32 @@ async def get_movie(db: AsyncSession, movie_id: int) -> Movie:
     return await db.scalar(stmt)
 
 
-async def update_movie(
-    db: AsyncSession,
-    movie_id: int,
-
-    name: str = None,
-    year: int = None,
-    time: int = None,
-    imdb: float = None,
-    votes: int = None,
-    meta_score: int = None,
-    gross: int = None,
-    description: str = None,
-    price: Decimal = None,
-) -> Movie:
-    local_variables = locals()
-    del local_variables["movie_id"]
-    del local_variables["db"]
-
-    if not any(local_variables.values()):
+async def update_movie(db: AsyncSession, movie_id: int, **kwargs) -> Movie:
+    if not kwargs:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one field is required")
 
+    movie_fields = frozenset(Movie.__table__.columns.keys())
+    nullable_fields = frozenset(column.key for column in Movie.__table__.columns if column.nullable)
+    field_to_update = {
+        key: kwargs[key]
+        for key in movie_fields & kwargs.keys()
+    }
 
     movie = await get_lite_movie(db=db, movie_id=movie_id)
+
     if not movie:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Movie not found"
         )
-    for field_name, value in local_variables.items():
-        if value:
+    for field_name, value in field_to_update.items():
+        if value or field_name in nullable_fields:
             setattr(movie, field_name, value)
-
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Field '{field_name}' cannot be null or not valid"
+            )
     db.add(movie)
     await db.flush()
     return movie

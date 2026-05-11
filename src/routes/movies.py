@@ -34,7 +34,6 @@ from crud.movies import (
     delete_comment_answer_reaction,
     get_lite_movie, update_movie,
 )
-from database.models import User, UserGroupEnum
 from schemas.base_schemas import MessageResponseSchema
 from schemas.movies import (
     PaginatedMovieResponseSchema,
@@ -180,7 +179,7 @@ async def update_movie_by_moderator(
     update_movie_data: UpdateMovieRequestSchema,
     movie_id: int
 ):
-    await update_movie(db=db, movie_id=movie_id, **update_movie_data.model_dump())
+    await update_movie(db=db, movie_id=movie_id, **update_movie_data.model_dump(exclude_unset=True))
     await db.commit()
     return {"message": "movie has been updated"}
 

@@ -1,8 +1,8 @@
 from datetime import timedelta
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Self
 
-from pydantic import BaseModel, Field, field_validator, ValidationError
+from pydantic import BaseModel, Field, field_validator, ValidationError, model_validator
 
 from database.models import MovieReaction
 from database.models.movies import Star, Director, Certification, Genre, Movie
@@ -100,15 +100,15 @@ class MovieDetailResponseSchema(MovieResponseSchema):
 
 
 class UpdateMovieRequestSchema(BaseModel):
-    name: str = None
-    year: int = None
-    time: int = None
-    imdb: float = None
-    votes: int = None
-    meta_score: int = None
-    gross: int = None
-    description: str = None
-    price: Decimal = None
+    name: Optional[str] = None
+    year: Optional[int] = None
+    time: Optional[int] = None
+    imdb: Optional[float] = None
+    votes: Optional[int] = None
+    meta_score: Optional[int] = None
+    gross: Optional[int] = None
+    description: Optional[str] = None
+    price: Optional[Decimal] = None
 
 
     @field_validator("year")
