@@ -3,8 +3,7 @@ from fastapi import APIRouter, status
 from crud.base_crud import rollback_decorator
 from crud.orders import create_orders_by_user_id, get_order
 from schemas.base_schemas import MessageResponseSchema
-from database import DATABASE
-from config.dependencies import TOKEN_DATA
+from config.dependencies import TOKEN_DATA, DATABASE
 from schemas.orders import OrderResponseSchema
 
 router = APIRouter()

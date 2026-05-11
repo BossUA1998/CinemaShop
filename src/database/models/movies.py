@@ -11,7 +11,7 @@ from sqlalchemy import (
     ForeignKey,
     UniqueConstraint,
     Table,
-    Column,
+    Column, CheckConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database.models.reactions import MovieReaction
@@ -127,8 +127,6 @@ class Movie(Base):
         "Certification", back_populates="movies"
     )
 
-    __table_args__ = (UniqueConstraint("name", "year", "time"),)
-
     genres: Mapped[list["Genre"]] = relationship(
         "Genre", secondary=MoviesGenres, back_populates="movies"
     )
@@ -145,3 +143,5 @@ class Movie(Base):
 
     favorite_movies: Mapped[list["FavoriteMovie"]] = relationship("FavoriteMovie", overlaps="favorite_movies_by_user")
     cart_items: Mapped[list["CartItem"]] = relationship("CartItem")
+
+    __table_args__ = (UniqueConstraint("name", "year", "time"),)

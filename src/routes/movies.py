@@ -10,10 +10,11 @@ from config.dependencies import (
     EMAIL_SENDER,
     LIMIT_OFFSET,
     TOKEN_DATA,
+    DATABASE,
+    MODERATOR_USER
 )
 from crud.accounts import get_user_by_id
 from crud.base_crud import rollback_decorator
-from database import DATABASE
 from crud.movies import (
     get_movies,
     set_reaction,
@@ -31,8 +32,9 @@ from crud.movies import (
     delete_comment_answer,
     set_reaction_to_comment,
     delete_comment_answer_reaction,
-    get_lite_movie,
+    get_lite_movie, update_movie,
 )
+from database.models import User, UserGroupEnum
 from schemas.base_schemas import MessageResponseSchema
 from schemas.movies import (
     PaginatedMovieResponseSchema,
@@ -49,7 +51,7 @@ from schemas.movies import (
     CommentAnswerRequestSchema,
     DeleteCommentAnswerRequestSchema,
     CommentReactionRequestSchema,
-    DeleteCommentReactionRequestSchema,
+    DeleteCommentReactionRequestSchema, UpdateMovieRequestSchema,
 )
 
 router = APIRouter()
@@ -162,6 +164,25 @@ async def movie_detail(
     movie.dislikes = dislikes
 
     return movie
+
+
+@router.patch(
+    path="/catalog/{movie_id}/",
+    status_code=status.HTTP_200_OK,
+    summary="Movie Patch",
+    response_model=MessageResponseSchema,
+    responses={}
+)
+@rollback_decorator()
+async def update_movie_by_moderator(
+    db: DATABASE,
+    user: MODERATOR_USER, # noqa
+    update_movie_data: UpdateMovieRequestSchema,
+    movie_id: int
+):
+    await update_movie(db=db, movie_id=movie_id, **update_movie_data.model_dump())
+    await db.commit()
+    return {"message": "movie has been updated"}
 
 
 @router.post(

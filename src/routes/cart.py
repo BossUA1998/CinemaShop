@@ -7,8 +7,7 @@ from crud.cart import (
     delete_all_movies_from_cart_by_user_id,
     get_all_movies_from_cart,
 )
-from database import DATABASE
-from config.dependencies import TOKEN_DATA
+from config.dependencies import TOKEN_DATA, DATABASE
 from schemas.base_schemas import MessageResponseSchema
 from schemas.cart import AddToCartRequestSchema, DeleteFromCartRequestSchema
 from schemas.movies import MovieInCartResponseSchema

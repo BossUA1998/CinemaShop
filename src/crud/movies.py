@@ -7,9 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete, update
 from sqlalchemy.orm import selectinload, joinedload
 
-from database.models import MovieReaction, FavoriteMovie
 from database.models.movies import Movie, Star, Director, Genre
-from database.models.reactions import CommentAnswer
+from database.models.reactions import CommentAnswer, MovieReaction, FavoriteMovie
 
 
 def _get_fts_query(raw_query: str, model_field):
@@ -91,6 +90,43 @@ async def get_movie(db: AsyncSession, movie_id: int) -> Movie:
         .where(Movie.id == movie_id)
     )
     return await db.scalar(stmt)
+
+
+async def update_movie(
+    db: AsyncSession,
+    movie_id: int,
+
+    name: str = None,
+    year: int = None,
+    time: int = None,
+    imdb: float = None,
+    votes: int = None,
+    meta_score: int = None,
+    gross: int = None,
+    description: str = None,
+    price: Decimal = None,
+) -> Movie:
+    local_variables = locals()
+    del local_variables["movie_id"]
+    del local_variables["db"]
+
+    if not any(local_variables.values()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one field is required")
+
+
+    movie = await get_lite_movie(db=db, movie_id=movie_id)
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found"
+        )
+    for field_name, value in local_variables.items():
+        if value:
+            setattr(movie, field_name, value)
+
+    db.add(movie)
+    await db.flush()
+    return movie
 
 
 async def set_reaction(

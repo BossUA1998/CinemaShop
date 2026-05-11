@@ -4,7 +4,7 @@ from enum import auto, StrEnum
 from sqlalchemy import Enum, String, Boolean, DateTime, func, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
-from database.models.reactions import MovieReaction, FavoriteMovie
+from database.models.reactions import MovieReaction
 from database.models.base import Base
 from database.validators import accounts as validators
 

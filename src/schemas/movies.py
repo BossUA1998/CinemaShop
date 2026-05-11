@@ -2,7 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ValidationError
 
 from database.models import MovieReaction
 from database.models.movies import Star, Director, Certification, Genre, Movie
@@ -97,6 +97,26 @@ class MovieDetailResponseSchema(MovieResponseSchema):
     @classmethod
     def validate_genres(cls, genres: list[Genre]) -> list[str]:
         return [genre.name for genre in genres]
+
+
+class UpdateMovieRequestSchema(BaseModel):
+    name: str = None
+    year: int = None
+    time: int = None
+    imdb: float = None
+    votes: int = None
+    meta_score: int = None
+    gross: int = None
+    description: str = None
+    price: Decimal = None
+
+
+    @field_validator("year")
+    @classmethod
+    def validate_year(cls, year: int) -> int:
+        if len(str(year)) > 4:
+            raise ValidationError("Year must be less than 4 symbols")
+        return year
 
 
 class PaginatedMovieResponseSchema(BaseModel):
