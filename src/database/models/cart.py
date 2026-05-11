@@ -3,28 +3,31 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, DateTime, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database.models.base import Base
+from database.models import Base
 
 
 class Cart(Base):
     __tablename__ = "carts"
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), unique=True
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
     )
 
 
 class CartItem(Base):
     __tablename__ = "cart_items"
 
-    id = None
     cart_id: Mapped[int] = mapped_column(
-        ForeignKey("carts.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("carts.id", ondelete="CASCADE"), nullable=False
     )
     movie_id: Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="RESTRICT"), primary_key=True
+        ForeignKey("movies.id", ondelete="RESTRICT"), nullable=False
     )
     added_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
+    )
+
+    __table_args__ = (
+        UniqueConstraint("cart_id", "movie_id"),
     )

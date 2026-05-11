@@ -1,6 +1,5 @@
 import uuid
 from decimal import Decimal
-from typing import List
 from uuid import UUID
 from sqlalchemy import (
     String,
@@ -75,7 +74,7 @@ class Genre(Base):
     __tablename__ = "genres"
 
     name: Mapped[str] = mapped_column(String(63), nullable=False, unique=True)
-    movies: Mapped[List["Movie"]] = relationship(
+    movies: Mapped[list["Movie"]] = relationship(
         "Movie", secondary=MoviesGenres, back_populates="genres"
     )
 
@@ -84,7 +83,7 @@ class Star(Base):
     __tablename__ = "stars"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    movies: Mapped[List["Movie"]] = relationship(
+    movies: Mapped[list["Movie"]] = relationship(
         "Movie", secondary=MovieStars, back_populates="stars"
     )
 
@@ -93,7 +92,7 @@ class Director(Base):
     __tablename__ = "directors"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    movies: Mapped[List["Movie"]] = relationship(
+    movies: Mapped[list["Movie"]] = relationship(
         "Movie", secondary=MoviesDirectors, back_populates="directors"
     )
 
@@ -102,7 +101,7 @@ class Certification(Base):
     __tablename__ = "certifications"
 
     name: Mapped[str] = mapped_column(String(31), nullable=False, unique=True)
-    movies: Mapped[List["Movie"]] = relationship(
+    movies: Mapped[list["Movie"]] = relationship(
         "Movie", back_populates="certification"
     )
 
@@ -130,18 +129,19 @@ class Movie(Base):
 
     __table_args__ = (UniqueConstraint("name", "year", "time"),)
 
-    genres: Mapped[List["Genre"]] = relationship(
+    genres: Mapped[list["Genre"]] = relationship(
         "Genre", secondary=MoviesGenres, back_populates="movies"
     )
 
-    directors: Mapped[List["Director"]] = relationship(
+    directors: Mapped[list["Director"]] = relationship(
         "Director", secondary=MoviesDirectors, back_populates="movies"
     )
 
-    stars: Mapped[List["Star"]] = relationship(
+    stars: Mapped[list["Star"]] = relationship(
         "Star", secondary=MovieStars, back_populates="movies"
     )
 
-    reactions: Mapped[List["MovieReaction"]] = relationship("MovieReaction")
-    favorite_movies: Mapped[List["FavoriteMovie"]] = relationship("FavoriteMovie")
-    cart_items: Mapped[List["CartItem"]] = relationship("CartItem")
+    reactions: Mapped[list["MovieReaction"]] = relationship("MovieReaction")
+
+    favorite_movies: Mapped[list["FavoriteMovie"]] = relationship("FavoriteMovie", overlaps="favorite_movies_by_user")
+    cart_items: Mapped[list["CartItem"]] = relationship("CartItem")

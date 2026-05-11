@@ -1,5 +1,3 @@
-from typing import List
-
 from sqlalchemy import (
     ForeignKey,
     String,
@@ -30,7 +28,7 @@ class MovieReaction(Base):
     grade: Mapped[int] = mapped_column(Integer, nullable=True)
 
     user: Mapped["User"] = relationship("User", back_populates="reactions")
-    comment_answers: Mapped[List["CommentAnswer"]] = relationship(
+    comment_answers: Mapped[list["CommentAnswer"]] = relationship(
         "CommentAnswer", back_populates="reaction_movie"
     )
 

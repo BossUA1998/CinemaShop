@@ -3,6 +3,7 @@ from alembic import context
 from database.models import accounts  # noqa
 from database.models import movies  # noqa
 from database.models import cart  # noqa
+from database.models import orders # noqa
 from database.models import Base
 from database.session import sync_postgresql_engine
 

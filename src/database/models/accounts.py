@@ -1,6 +1,5 @@
 from datetime import datetime, date, timezone, timedelta
 from enum import auto, StrEnum
-from typing import List
 
 from sqlalchemy import Enum, String, Boolean, DateTime, func, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
@@ -29,7 +28,7 @@ class UserGroupModel(Base):
     name: Mapped[UserGroupEnum] = mapped_column(
         Enum(UserGroupEnum), nullable=False, unique=True
     )
-    users: Mapped[List["User"]] = relationship("User", back_populates="group")
+    users: Mapped[list["User"]] = relationship("User", back_populates="group")
 
 
 class User(Base):
@@ -63,7 +62,7 @@ class User(Base):
         "PasswordResetTokenModel", back_populates="user", cascade="all, delete-orphan"
     )
 
-    refresh_tokens: Mapped[List["RefreshTokenModel"]] = relationship(
+    refresh_tokens: Mapped[list["RefreshTokenModel"]] = relationship(
         "RefreshTokenModel", back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -71,10 +70,10 @@ class User(Base):
         "UserProfile", back_populates="user", cascade="all, delete-orphan"
     )
 
-    reactions: Mapped[List["MovieReaction"]] = relationship(
+    reactions: Mapped[list["MovieReaction"]] = relationship(
         "MovieReaction", back_populates="user"
     )
-    favorite_movies_by_user: Mapped[List["Movie"]] = relationship(
+    favorite_movies_by_user: Mapped[list["Movie"]] = relationship(
         "Movie", secondary="favorite_movies"
     )
 

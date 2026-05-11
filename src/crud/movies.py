@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.dialects.postgresql import insert
@@ -38,7 +38,7 @@ async def get_movies(
     price: Optional[Decimal] = None,
     order_by_field: Optional[str] = None,
     is_desc: bool = False,
-) -> List[Movie]:
+) -> list[Movie]:
     stmt = (
         select(Movie)
         .options(selectinload(Movie.stars), selectinload(Movie.directors))
@@ -393,7 +393,7 @@ async def delete_favorite_movie(db: AsyncSession, user_id: int, movie_id: int) -
         )
 
 
-async def get_all_genres_with_movies_count(db: AsyncSession) -> List[Genre]:
+async def get_all_genres_with_movies_count(db: AsyncSession) -> list[Genre]:
     return await db.execute(
         select(Genre, func.count(Movie.id)).outerjoin(Genre.movies).group_by(Genre.id)
     )
