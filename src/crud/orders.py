@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, exists
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -57,6 +57,12 @@ async def create_orders_by_user_id(db: AsyncSession, user_id: int) -> None:
         .values(raw_order_items)
     )
     await delete_all_movies_from_cart_by_user_id(db=db, user_id=user_id)
+
+
+async def _get_is_purchased_movie(db: AsyncSession, movie_id: int) -> bool:
+    return await db.scalar(
+        select(exists().where(OrderItem.movie_id == movie_id))
+    )
 
 
 async def get_order(db: AsyncSession, user_id: int) -> Order:

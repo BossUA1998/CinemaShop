@@ -32,7 +32,7 @@ from crud.movies import (
     delete_comment_answer,
     set_reaction_to_comment,
     delete_comment_answer_reaction,
-    get_lite_movie, update_movie,
+    get_lite_movie, update_movie, create_movie, delete_movie,
 )
 from schemas.base_schemas import MessageResponseSchema
 from schemas.movies import (
@@ -50,7 +50,7 @@ from schemas.movies import (
     CommentAnswerRequestSchema,
     DeleteCommentAnswerRequestSchema,
     CommentReactionRequestSchema,
-    DeleteCommentReactionRequestSchema, UpdateMovieRequestSchema,
+    DeleteCommentReactionRequestSchema, UpdateMovieRequestSchema, CreateMovieRequestSchema,
 )
 
 router = APIRouter()
@@ -156,11 +156,17 @@ async def movie_detail(
 ):
     movie = await get_movie(db=db, movie_id=movie_id)
 
-    reactions = Counter(reaction_model.reaction for reaction_model in movie.reactions)
-    likes = reactions[True]
-    dislikes = reactions[False]
-    movie.likes = likes
-    movie.dislikes = dislikes
+    if movie:
+        reactions = Counter(reaction_model.reaction for reaction_model in movie.reactions)
+        likes = reactions[True]
+        dislikes = reactions[False]
+        movie.likes = likes
+        movie.dislikes = dislikes
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found"
+        )
 
     return movie
 
@@ -181,7 +187,47 @@ async def update_movie_by_moderator(
 ):
     await update_movie(db=db, movie_id=movie_id, **update_movie_data.model_dump(exclude_unset=True))
     await db.commit()
-    return {"message": "movie has been updated"}
+    return {"message": "Movie has been updated"}
+
+
+@router.post(
+    path="/catalog/",
+    status_code=status.HTTP_201_CREATED,
+    summary="Movie Create",
+    response_model=MessageResponseSchema,
+    responses={}
+)
+@rollback_decorator()
+async def create_new_movie_by_moderator(
+    db: DATABASE,
+    user: MODERATOR_USER, # noqa
+    new_movie_data: CreateMovieRequestSchema
+):
+    movie = await create_movie(db=db, **new_movie_data.model_dump(exclude_unset=True))
+    await db.commit()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Movie may conflict on create",
+        )
+    return {"message": "Movie has been created"}
+
+
+@router.delete(
+    path="/catalog/{movie_id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Movie Delete",
+    responses={}
+)
+@rollback_decorator()
+async def delete_movie_by_moderator(
+    db: DATABASE,
+    user: MODERATOR_USER, # noqa
+    movie_id: int
+):
+    await delete_movie(db=db, movie_id=movie_id)
+    await db.commit()
 
 
 @router.post(
