@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from fastapi import HTTPException, status
 from sqlalchemy import select, exists
 from sqlalchemy.dialects.postgresql import insert
@@ -69,6 +71,15 @@ async def get_order(db: AsyncSession, user_id: int) -> Order:
     return await db.scalar(
         select(Order)
         .where(Order.user_id == user_id)
+        .options(
+            selectinload(Order.order_items).selectinload(OrderItem.movie)
+        )
+    )
+
+
+async def get_all_orders(db: AsyncSession) -> Iterable[Order]:
+    return await db.scalars(
+        select(Order)
         .options(
             selectinload(Order.order_items).selectinload(OrderItem.movie)
         )
