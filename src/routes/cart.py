@@ -54,7 +54,7 @@ async def delete_movie_from_cart(
 
 
 @router.get(
-    path="/all/",
+    path="/",
     status_code=status.HTTP_200_OK,
     summary="Cart Movies",
     response_model=list[MovieInCartResponseSchema],

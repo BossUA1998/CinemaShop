@@ -1,12 +1,13 @@
-from typing import Iterable
+from datetime import datetime
+from typing import Iterable, Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, exists
+from sqlalchemy import select, exists, delete, cast, Date
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from database.models.orders import Order, OrderItem
+from database.models.orders import Order, OrderItem, OrderStatus
 
 
 async def create_orders_by_user_id(db: AsyncSession, user_id: int) -> None:
@@ -67,7 +68,22 @@ async def _get_is_purchased_movie(db: AsyncSession, movie_id: int) -> bool:
     )
 
 
-async def get_orders(db: AsyncSession, user_id: int = None) -> Iterable[Order]:
+async def get_order(db: AsyncSession, order_id: int) -> Optional[Order]:
+    return await db.scalar(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(
+            selectinload(Order.order_items)
+        )
+    )
+
+
+async def get_orders(
+    db: AsyncSession,
+    user_id: Optional[int] = None,
+    created_at: Optional[datetime] = None,
+    status: Optional[OrderStatus] = None
+)-> Iterable[Order]:
     stmt = (
         select(Order)
         .options(
@@ -76,4 +92,22 @@ async def get_orders(db: AsyncSession, user_id: int = None) -> Iterable[Order]:
     )
     if user_id:
         stmt = stmt.where(Order.user_id == user_id)
+    if created_at:
+        stmt = stmt.where(
+            cast(Order.created_at, Date) == created_at.date()
+        )
+    if status:
+        stmt = stmt.where(Order.status == status)
     return await db.scalars(stmt)
+
+
+async def delete_order_by_id(db: AsyncSession, order_id: int, user_id: int) -> bool:
+    db_res = await db.execute(
+        delete(Order)
+        .where(
+            Order.id == order_id,
+            Order.user_id == user_id,
+            Order.status == OrderStatus.pending
+        )
+    )
+    return db_res.rowcount == 1
