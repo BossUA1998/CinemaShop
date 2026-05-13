@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, HTTPException
 
 from crud.base_crud import rollback_decorator
 from crud.cart import (
@@ -7,7 +7,7 @@ from crud.cart import (
     delete_all_movies_from_cart_by_user_id,
     get_all_movies_from_cart,
 )
-from config.dependencies import TOKEN_DATA, DATABASE
+from config.dependencies import TOKEN_DATA, DATABASE, MODERATOR_USER
 from schemas.base_schemas import MessageResponseSchema
 from schemas.cart import AddToCartRequestSchema, DeleteFromCartRequestSchema
 from schemas.movies import MovieInCartResponseSchema
@@ -84,3 +84,26 @@ async def delete_all_movies_from_cart(
         user_id=token_data["user_id"],
     )
     await db.commit()
+
+
+@router.get(
+    path="/{user_id}/all/",
+    status_code=status.HTTP_200_OK,
+    summary="Cart Movies",
+    response_model=list[MovieInCartResponseSchema],
+    responses={}
+)
+async def get_user_cart_by_moderator(
+    db: DATABASE,
+    user: MODERATOR_USER,
+    user_id: int
+):
+    if user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This is your shopping cart, to view it use the current link without specifying the user ID"
+        )
+    return await get_all_movies_from_cart(
+        db=db,
+        user_id=user_id,
+    )

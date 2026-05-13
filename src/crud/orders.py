@@ -67,20 +67,13 @@ async def _get_is_purchased_movie(db: AsyncSession, movie_id: int) -> bool:
     )
 
 
-async def get_order(db: AsyncSession, user_id: int) -> Order:
-    return await db.scalar(
-        select(Order)
-        .where(Order.user_id == user_id)
-        .options(
-            selectinload(Order.order_items).selectinload(OrderItem.movie)
-        )
-    )
-
-
-async def get_all_orders(db: AsyncSession) -> Iterable[Order]:
-    return await db.scalars(
+async def get_orders(db: AsyncSession, user_id: int = None) -> Iterable[Order]:
+    stmt = (
         select(Order)
         .options(
             selectinload(Order.order_items).selectinload(OrderItem.movie)
         )
     )
+    if user_id:
+        stmt = stmt.where(Order.user_id == user_id)
+    return await db.scalars(stmt)

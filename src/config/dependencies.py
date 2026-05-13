@@ -32,6 +32,7 @@ def get_email_sender(
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
         comment_answer_template_name=settings.COMMENT_ANSWER_TEMPLATE_NAME,
         comment_reaction_template_name=settings.COMMENT_REACTION_TEMPLATE_NAME,
+        impossible_delete_movie_template_name=settings.IMPOSSIBLE_DELETE_MOVIE_TEMPLATE_NAME
     )
 
 
@@ -104,12 +105,16 @@ async def get_moderator_user(user: "User" = Depends(get_current_user)) -> "User"
     if user.group.name != UserGroupEnum.MODERATOR and user.group.name != UserGroupEnum.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No required permission")
 
+    return user
+
 
 async def get_admin_user(user: "User" = Depends(get_current_user)) -> "User":
     from database.models.accounts import UserGroupEnum
 
     if user.group.name != UserGroupEnum.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No required permission")
+
+    return user
 
 
 CURRENT_USER = Annotated["User", Depends(get_current_user)]

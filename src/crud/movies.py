@@ -236,15 +236,14 @@ async def create_movie(db: AsyncSession, **kwargs) -> Optional[Movie]:
     return movie
 
 
-async def delete_movie(db: AsyncSession, movie_id: int) -> None:
+async def delete_movie(db: AsyncSession, movie_id: int) -> Optional[Movie]:
     from crud.orders import _get_is_purchased_movie
     if await _get_is_purchased_movie(db=db, movie_id=movie_id):
-        sigma = await _get_is_purchased_movie(db=db, movie_id=movie_id)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The film had already been bought by someone"
         )
-    await db.execute(
+    await db.scalar(
         delete(Movie)
         .where(Movie.id == movie_id)
     )

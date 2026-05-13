@@ -5,6 +5,7 @@ from typing import Optional
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, status, HTTPException, Request, Query, BackgroundTasks
+from starlette.background import BackgroundTask
 
 from config.dependencies import (
     EMAIL_SENDER,
@@ -181,7 +182,7 @@ async def movie_detail(
 @rollback_decorator()
 async def update_movie_by_moderator(
     db: DATABASE,
-    user: MODERATOR_USER, # noqa
+    user: MODERATOR_USER,  # noqa
     update_movie_data: UpdateMovieRequestSchema,
     movie_id: int
 ):
@@ -200,7 +201,7 @@ async def update_movie_by_moderator(
 @rollback_decorator()
 async def create_new_movie_by_moderator(
     db: DATABASE,
-    user: MODERATOR_USER, # noqa
+    user: MODERATOR_USER,  # noqa
     new_movie_data: CreateMovieRequestSchema
 ):
     movie = await create_movie(db=db, **new_movie_data.model_dump(exclude_unset=True))
@@ -223,10 +224,26 @@ async def create_new_movie_by_moderator(
 @rollback_decorator()
 async def delete_movie_by_moderator(
     db: DATABASE,
-    user: MODERATOR_USER, # noqa
-    movie_id: int
+    user: MODERATOR_USER,  # noqa
+    movie_id: int,
+    email_sender: EMAIL_SENDER,
 ):
-    await delete_movie(db=db, movie_id=movie_id)
+    movie = await get_lite_movie(db=db, movie_id=movie_id)
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found",
+        )
+
+    try:
+        await delete_movie(db=db, movie_id=movie_id)
+    except HTTPException:
+        await email_sender.send_notification_about_impossibility_of_delete_movie(
+            email=user.email,
+            movie_name=movie.name,
+        )
+        raise
+
     await db.commit()
 
 

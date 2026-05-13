@@ -18,6 +18,7 @@ class EmailSender:
         password_complete_email_template_name: str,
         comment_answer_template_name: str,
         comment_reaction_template_name: str,
+        impossible_delete_movie_template_name: str
     ):
         self._smtp_server = smtp_server
         self._smtp_port = smtp_port
@@ -33,6 +34,8 @@ class EmailSender:
         )
         self.notification_for_comment_answer = comment_answer_template_name
         self.notification_for_comment_reaction = comment_reaction_template_name
+
+        self.notification_for_impossible_delete_movie = impossible_delete_movie_template_name
 
         self._env = Environment(loader=FileSystemLoader(path_to_templates))
 
@@ -105,4 +108,11 @@ class EmailSender:
         template = self._env.get_template(self.notification_for_comment_reaction)
         html = template.render(movie_name=movie_name)
         subject = "Reaction Notification"
+        await self._send_email(to=email, subject=subject, html=html)
+
+
+    async def send_notification_about_impossibility_of_delete_movie(self, email: str, movie_name: str):
+        template = self._env.get_template(self.notification_for_impossible_delete_movie)
+        html = template.render(movie_name=movie_name)
+        subject = "Impossible Delete Movie"
         await self._send_email(to=email, subject=subject, html=html)

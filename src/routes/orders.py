@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 
 from crud.base_crud import rollback_decorator
-from crud.orders import create_orders_by_user_id, get_order, get_all_orders
+from crud.orders import create_orders_by_user_id, get_orders
 from schemas.base_schemas import MessageResponseSchema
 from config.dependencies import TOKEN_DATA, DATABASE, MODERATOR_USER
 from schemas.orders import OrderResponseSchema, OrderForModeratorsSchema
@@ -29,13 +29,13 @@ async def create_order(
     path="/",
     status_code=status.HTTP_200_OK,
     summary="Cart Orders",
-    response_model=OrderResponseSchema,
+    response_model=list[OrderResponseSchema],
 )
-async def get_orders(
+async def get_user_orders(
     db: DATABASE,
     token_data: TOKEN_DATA,
 ):
-    return await get_order(db=db, user_id=token_data["user_id"])
+    return await get_orders(db=db, user_id=token_data["user_id"])
 
 
 @router.get(
@@ -47,6 +47,6 @@ async def get_orders(
 )
 async def get_all_orders_by_moderator_user(
     db: DATABASE,
-    user: MODERATOR_USER,
+    user: MODERATOR_USER, # noqa
 ):
-    return await get_all_orders(db=db)
+    return await get_orders(db=db)

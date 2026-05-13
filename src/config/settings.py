@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     PASSWORD_RESET_COMPLETE_TEMPLATE_NAME: str = "password_reset_complete.html"
     COMMENT_ANSWER_TEMPLATE_NAME: str = "comment_answer.html"
     COMMENT_REACTION_TEMPLATE_NAME: str = "comment_reaction.html"
+    IMPOSSIBLE_DELETE_MOVIE_TEMPLATE_NAME: str = "impossible_delete_movie.html"
 
     SECRET_KEY_ACCESS: str = os.urandom(32).hex()
     SECRET_KEY_REFRESH: str = os.urandom(32).hex()
