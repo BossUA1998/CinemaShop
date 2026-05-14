@@ -1,8 +1,10 @@
+import os
+from stripe import StripeClient
+
 from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
-import os
 
 
 class Settings(BaseSettings):
@@ -36,6 +38,10 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = "1qazcde3"
 
     DEFAULT_PAGE_SIZE: int = 100
+
+    STRIPE_PRIVATE_KEY: str = ""
+    STRIPE_WEBHOOK_KEY: str = ""
+    STRIPE_CLIENT: StripeClient = StripeClient(STRIPE_PRIVATE_KEY)
 
     @field_validator("SMTP_PASSWORD")
     @classmethod

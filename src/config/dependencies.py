@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, Request, HTTPException, status
@@ -13,6 +14,7 @@ from database.session import (
 )
 
 
+@lru_cache
 def get_settings() -> Settings:
     return Settings()
 
