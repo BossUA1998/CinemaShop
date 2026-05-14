@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from database.models.orders import Order, OrderItem, OrderStatus
+from database.models import Order, OrderItem, OrderStatus
 
 
 async def create_orders_by_user_id(db: AsyncSession, user_id: int) -> None:

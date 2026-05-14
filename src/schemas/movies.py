@@ -1,11 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
-from typing import Optional, Self
+from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator, ValidationError, model_validator
+from pydantic import BaseModel, Field, field_validator, ValidationError
 
 from database.models import MovieReaction
-from database.models.movies import Star, Director, Certification, Genre, Movie
+from database.models import Star, Director, Certification, Genre, Movie
 
 from schemas.base_schemas import _RawSchemaWithMovieId
 

@@ -6,7 +6,7 @@ from fastapi.params import Query
 from crud.base_crud import rollback_decorator
 from crud.cart import bulk_create_cart_items
 from crud.orders import create_orders_by_user_id, get_orders, get_order, delete_order_by_id
-from database.models.orders import OrderStatus
+from database.models import OrderStatus
 from schemas.base_schemas import MessageResponseSchema
 from config.dependencies import TOKEN_DATA, DATABASE, MODERATOR_USER
 from schemas.orders import OrderResponseSchema, OrderForModeratorsSchema

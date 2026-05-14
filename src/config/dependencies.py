@@ -100,7 +100,7 @@ async def get_current_user(
 
 
 async def get_moderator_user(user: "User" = Depends(get_current_user)) -> "User":
-    from database.models.accounts import UserGroupEnum
+    from database.models import UserGroupEnum
 
     if user.group.name != UserGroupEnum.MODERATOR and user.group.name != UserGroupEnum.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No required permission")
@@ -109,7 +109,7 @@ async def get_moderator_user(user: "User" = Depends(get_current_user)) -> "User"
 
 
 async def get_admin_user(user: "User" = Depends(get_current_user)) -> "User":
-    from database.models.accounts import UserGroupEnum
+    from database.models import UserGroupEnum
 
     if user.group.name != UserGroupEnum.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No required permission")

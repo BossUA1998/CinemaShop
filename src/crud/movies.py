@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete, update
 from sqlalchemy.orm import selectinload, joinedload
 
-from database.models.movies import Movie, Star, Director, Genre, Certification
-from database.models.reactions import CommentAnswer, MovieReaction, FavoriteMovie
+from database.models import Movie, Star, Director, Genre, Certification
+from database.models import CommentAnswer, MovieReaction, FavoriteMovie
 
 
 def _get_fts_query(raw_query: str, model_field):

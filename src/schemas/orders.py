@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
-from database.models.movies import Movie
+from database.models import Movie
 
 
 class _OrderItemSchema(BaseModel):

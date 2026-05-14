@@ -8,8 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from database.models.cart import Cart, CartItem
-from database.models.movies import Movie
+from database.models import Cart, CartItem
+from database.models import Movie
 
 
 async def get_or_create_cart_id(db: AsyncSession, user_id: int) -> int:

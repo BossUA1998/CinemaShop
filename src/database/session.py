@@ -1,9 +1,9 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Integer
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, DeclarativeBase, Mapped, mapped_column
 
 from config.settings import Settings
 
@@ -36,3 +36,7 @@ async def get_postgresql_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_postgresql_db_contextmanager() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncPostgresqlSessionLocal() as session:
         yield session
+
+
+class Base(DeclarativeBase):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

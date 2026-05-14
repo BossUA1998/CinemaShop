@@ -8,8 +8,8 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.session import get_postgresql_db_contextmanager
-from database.models.movies import Movie, Certification, Genre, Director, Star
-from database.models.accounts import UserGroupModel, UserGroupEnum
+from database.models import Movie, Certification, Genre, Director, Star
+from database.models import UserGroupModel, UserGroupEnum
 
 
 class CSVDatabaseSeeder:
@@ -120,7 +120,7 @@ class CSVDatabaseSeeder:
 
 
 async def main() -> None:
-    from config import get_settings
+    from config.dependencies import get_settings
 
     settings = get_settings()
 
