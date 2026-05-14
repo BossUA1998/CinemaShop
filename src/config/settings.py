@@ -1,9 +1,8 @@
 import os
-from stripe import StripeClient
-
+import stripe
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -39,9 +38,15 @@ class Settings(BaseSettings):
 
     DEFAULT_PAGE_SIZE: int = 100
 
-    STRIPE_PRIVATE_KEY: str = ""
-    STRIPE_WEBHOOK_KEY: str = ""
-    STRIPE_CLIENT: StripeClient = StripeClient(STRIPE_PRIVATE_KEY)
+    STRIPE_PRIVATE_KEY: str
+    STRIPE_WEBHOOK_KEY: str
+    STRIPE_SUCCESS_URL: str
+    STRIPE_CANCEL_URL: str
+
+    @model_validator(mode="after")
+    def set_stripe_api_key(self):
+        stripe.api_key = self.STRIPE_PRIVATE_KEY
+        return self
 
     @field_validator("SMTP_PASSWORD")
     @classmethod

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import Order, Payment, PaymentItem
 
 
-async def create_payment(db: AsyncSession, user_id: int, order: Order) -> None:
+async def create_payment(db: AsyncSession, user_id: int, order: Order) -> int:
     movies = [
         order_item.movie for order_item in order.order_items
     ]
@@ -44,3 +44,4 @@ async def create_payment(db: AsyncSession, user_id: int, order: Order) -> None:
         insert(PaymentItem)
         .values(raw_payment_items)
     )
+    return payment_id
