@@ -68,14 +68,20 @@ async def _get_is_purchased_movie(db: AsyncSession, movie_id: int) -> bool:
     )
 
 
-async def get_order(db: AsyncSession, order_id: int) -> Optional[Order]:
-    return await db.scalar(
+async def get_order(db: AsyncSession, order_id: int, select_movies: bool = False) -> Optional[Order]:
+    stmt = (
         select(Order)
         .where(Order.id == order_id)
-        .options(
+    )
+    if select_movies:
+        stmt = stmt.options(
+            selectinload(Order.order_items).selectinload(OrderItem.movie)
+        )
+    else:
+        stmt = stmt.options(
             selectinload(Order.order_items)
         )
-    )
+    return await db.scalar(stmt)
 
 
 async def get_orders(

@@ -1,6 +1,11 @@
 import stripe
-from fastapi import APIRouter, status, Request
-from config.dependencies import SETTINGS
+from fastapi import APIRouter, status, Request, HTTPException
+from config.dependencies import SETTINGS, TOKEN_DATA, DATABASE
+from crud.base_crud import rollback_decorator
+from crud.orders import get_order
+from crud.payments import create_payment
+from database.models import OrderStatus
+from schemas.payments import CreatePaymentRequestSchema
 
 router = APIRouter()
 
@@ -30,3 +35,48 @@ async def payments_webhook(request: Request, settings: SETTINGS):
             # TODO implement to send receipt on email
         case "checkout.session.expired":
             ...
+
+@router.post(
+    path="/create/",
+    status_code=status.HTTP_201_CREATED,
+    summary="Payments Session",
+)
+@rollback_decorator()
+async def payments_session(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+    payment_data: CreatePaymentRequestSchema
+):
+    user_id = token_data["user_id"]
+    order_id = payment_data.order_id
+
+    order = await get_order(
+        db=db,
+        order_id=order_id,
+        select_movies=True
+    )
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+    if order.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This is not your order"
+        )
+
+    if order.status == OrderStatus.paid or order.status == OrderStatus.canceled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This order cannot be paid for"
+        )
+
+    await create_payment(
+        db=db,
+        user_id=user_id,
+        order=order
+    )
+
+    await db.commit()
+
