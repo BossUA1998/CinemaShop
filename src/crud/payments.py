@@ -1,8 +1,9 @@
 from fastapi import HTTPException, status
+from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Order, Payment, PaymentItem
+from database.models import Order, Payment, PaymentItem, PaymentStatus
 
 
 async def create_payment(db: AsyncSession, user_id: int, order: Order) -> int:
@@ -45,3 +46,19 @@ async def create_payment(db: AsyncSession, user_id: int, order: Order) -> int:
         .values(raw_payment_items)
     )
     return payment_id
+
+
+async def filling_payment(
+    db: AsyncSession,
+    payment_id: int,
+    status: PaymentStatus,
+    stripe_payment_id: str = None
+) -> int:
+    await db.execute(
+        update(Payment)
+        .values(
+            status=status,
+            external_payment_id=stripe_payment_id
+        )
+        .where(Payment.id == payment_id)
+    )

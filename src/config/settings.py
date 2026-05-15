@@ -38,10 +38,10 @@ class Settings(BaseSettings):
 
     DEFAULT_PAGE_SIZE: int = 100
 
-    STRIPE_PRIVATE_KEY: str
-    STRIPE_WEBHOOK_KEY: str
-    STRIPE_SUCCESS_URL: str
-    STRIPE_CANCEL_URL: str
+    STRIPE_PRIVATE_KEY: str = ""
+    STRIPE_WEBHOOK_KEY: str = ""
+    STRIPE_SUCCESS_URL: str = ""
+    STRIPE_CANCEL_URL: str = ""
 
     @model_validator(mode="after")
     def set_stripe_api_key(self):

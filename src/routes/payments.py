@@ -4,11 +4,23 @@ from config.dependencies import SETTINGS, TOKEN_DATA, DATABASE
 from config.settings import Settings
 from crud.base_crud import rollback_decorator
 from crud.orders import get_order
-from crud.payments import create_payment
-from database.models import OrderStatus, Movie, OrderItem
+from crud.payments import create_payment, filling_payment
+from database.models import OrderStatus, Movie, PaymentStatus
 from schemas.payments import CreatePaymentRequestSchema
 
 router = APIRouter()
+
+
+def _get_payment_id(object_) -> int:
+    payment_id = int(object_.metadata["payment_id"])
+
+    if not payment_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment id not found in metadata"
+        )
+
+    return payment_id
 
 
 async def _create_payment_session(
@@ -46,7 +58,12 @@ async def _create_payment_session(
     status_code=status.HTTP_200_OK,
     summary="Payments Webhook",
 )
-async def payments_webhook(request: Request, settings: SETTINGS):
+@rollback_decorator()
+async def payments_webhook(
+    request: Request,
+    settings: SETTINGS,
+    db: DATABASE
+):
     payload = await request.body()
     signature = request.headers.get("stripe-signature")
 
@@ -57,14 +74,32 @@ async def payments_webhook(request: Request, settings: SETTINGS):
     except stripe.error.SignatureVerificationError:
         raise
 
-    match event["type"]:
-        case "checkout.session.completed":
-            ...
+    object_ = event.data.object
+    match event.type:
         case "charge.succeeded":
-            ...
+            status_ = PaymentStatus.successful
+            payment_id = _get_payment_id(object_=object_)
+            stripe_payment_id = object_.id
+
+            await filling_payment(
+                db=db,
+                payment_id=payment_id,
+                status=status_,
+                stripe_payment_id=stripe_payment_id
+            )
             # TODO implement to send receipt on email
         case "checkout.session.expired":
-            ...
+            status_ = PaymentStatus.canceled
+            payment_id = _get_payment_id(object_=object_)
+
+            await filling_payment(db=db, payment_id=payment_id, status=status_)
+        case "charge.refunded":
+            status_ = PaymentStatus.refunded
+            payment_id = _get_payment_id(object_=object_)
+
+            await filling_payment(db=db, payment_id=payment_id, status=status_)
+
+    await db.commit()
 
 
 @router.post(
@@ -98,7 +133,7 @@ async def payments_session(
             detail="This is not your order"
         )
 
-    if order.status == OrderStatus.paid or order.status == OrderStatus.canceled:
+    if order.status != OrderStatus.pending:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This order cannot be paid for"
