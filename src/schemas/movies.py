@@ -2,10 +2,10 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ValidationError
 
 from database.models import MovieReaction
-from database.models.movies import Star, Director, Certification, Genre, Movie
+from database.models import Star, Director, Certification, Genre, Movie
 
 from schemas.base_schemas import _RawSchemaWithMovieId
 
@@ -14,6 +14,10 @@ class _RawMovieResponseSchema(BaseModel):
     name: str
     price: Decimal
     year: int
+
+
+class PurchasedMoviesResponseSchema(_RawMovieResponseSchema):
+    ...
 
 
 class MovieInCartResponseSchema(_RawMovieResponseSchema):
@@ -56,7 +60,7 @@ class MovieResponseSchema(_RawMovieResponseSchema):
 
 
 class MovieDetailResponseSchema(MovieResponseSchema):
-    certification: str
+    certification: Optional[str]
     genres: list[str]
 
     comments: list[dict] = Field(validation_alias="reactions")
@@ -91,12 +95,67 @@ class MovieDetailResponseSchema(MovieResponseSchema):
     @field_validator("certification", mode="before")
     @classmethod
     def validate_certification(cls, certification: Certification) -> str:
-        return certification.name
+        return getattr(certification, "name", None)
 
     @field_validator("genres", mode="before")
     @classmethod
     def validate_genres(cls, genres: list[Genre]) -> list[str]:
         return [genre.name for genre in genres]
+
+
+class _MovieManyToManyFields(BaseModel):
+    certification: str = None
+    genres: list[str] = None
+    director: str = None
+    stars: list[str] = None
+
+    @field_validator("genres", "stars", mode="before")
+    @classmethod
+    def validate_genres_and_stars(cls, value: str) -> list[str]:
+        values_list = value.split(",")
+        if not values_list:
+            raise ValidationError("No values passed or wrong separator used, use comma")
+        return [v.strip().title() for v in values_list]
+
+    @field_validator("director")
+    @classmethod
+    def validate_director(cls, director: str):
+        return director.strip().title()
+
+
+class UpdateMovieRequestSchema(_MovieManyToManyFields):
+    name: Optional[str] = None
+    year: Optional[int] = None
+    time: Optional[int] = None
+    imdb: Optional[float] = None
+    votes: Optional[int] = None
+    meta_score: Optional[int] = None
+    gross: Optional[int] = None
+    description: Optional[str] = None
+    price: Optional[Decimal] = None
+
+    @field_validator("year")
+    @classmethod
+    def validate_year(cls, year: int) -> int:
+        if len(str(year)) > 4:
+            raise ValidationError("Year must be less than 4 symbols")
+        return year
+
+
+class CreateMovieRequestSchema(_MovieManyToManyFields):
+    name: str
+    year: int
+    time: int
+    imdb: float
+    votes: int
+    meta_score: Optional[int] = None
+    gross: Optional[int] = None
+    description: str
+    price: Decimal
+    director: str
+    genres: list[str]
+    stars: list[str]
+    certification: str
 
 
 class PaginatedMovieResponseSchema(BaseModel):

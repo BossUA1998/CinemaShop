@@ -1,8 +1,9 @@
+import os
+import stripe
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
-import os
 
 
 class Settings(BaseSettings):
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     PASSWORD_RESET_COMPLETE_TEMPLATE_NAME: str = "password_reset_complete.html"
     COMMENT_ANSWER_TEMPLATE_NAME: str = "comment_answer.html"
     COMMENT_REACTION_TEMPLATE_NAME: str = "comment_reaction.html"
+    IMPOSSIBLE_DELETE_MOVIE_TEMPLATE_NAME: str = "impossible_delete_movie.html"
 
     SECRET_KEY_ACCESS: str = os.urandom(32).hex()
     SECRET_KEY_REFRESH: str = os.urandom(32).hex()
@@ -35,6 +37,16 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = "1qazcde3"
 
     DEFAULT_PAGE_SIZE: int = 100
+
+    STRIPE_PRIVATE_KEY: str = ""
+    STRIPE_WEBHOOK_KEY: str = ""
+    STRIPE_SUCCESS_URL: str = ""
+    STRIPE_CANCEL_URL: str = ""
+
+    @model_validator(mode="after")
+    def set_stripe_api_key(self):
+        stripe.api_key = self.STRIPE_PRIVATE_KEY
+        return self
 
     @field_validator("SMTP_PASSWORD")
     @classmethod

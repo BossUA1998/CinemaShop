@@ -8,20 +8,24 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from database.models.cart import Cart, CartItem
-from database.models.movies import Movie
+from database.models import Cart, CartItem
+from database.models import Movie
 
+
+async def get_or_create_cart_id(db: AsyncSession, user_id: int) -> int:
+    cart_id = await db.scalar(select(Cart.id).where(Cart.user_id == user_id))
+    if not cart_id:
+        cart_id = await db.scalar(
+            insert(Cart).values(user_id=user_id).returning(Cart.id)
+        )
+    return cart_id
 
 async def add_movie_to_cart_and_create_cart(
     db: AsyncSession,
     user_id: int,
     movie_id: int,
 ) -> None:
-    cart_id = await db.scalar(select(Cart.id).where(Cart.user_id == user_id))
-    if not cart_id:
-        cart_id = await db.scalar(
-            insert(Cart).values(user_id=user_id).returning(Cart.id)
-        )
+    cart_id = await get_or_create_cart_id(db=db, user_id=user_id)
     try:
         db_res = await db.execute(
             insert(CartItem)
@@ -38,6 +42,19 @@ async def add_movie_to_cart_and_create_cart(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Movie not found"
             )
+
+
+async def bulk_create_cart_items(db: AsyncSession, user_id: int, movie_ids: set | frozenset) -> None:
+    cart_id = await get_or_create_cart_id(db=db, user_id=user_id)
+    cart_items = [
+        {"movie_id": movie_id, "cart_id": cart_id}
+        for movie_id in movie_ids
+    ]
+    await db.execute(
+        insert(CartItem)
+        .values(cart_items)
+        .on_conflict_do_nothing()
+    )
 
 
 def _get_cart_id_subquery(user_id: int):

@@ -5,8 +5,6 @@ from datetime import datetime, timezone, timedelta
 from jose.exceptions import JWTClaimsError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import User
-
 
 class TokenManager:
     """
@@ -70,7 +68,7 @@ class TokenManager:
             key=self.__access_secret_key, expires_at=expires_at.timestamp(), data=data
         )
 
-    async def create_refresh_token(self, data: dict, user: User, db: AsyncSession):
+    async def create_refresh_token(self, data: dict, user: "User", db: AsyncSession):
         from crud.accounts import create_refresh_token as crud_create_refresh_token
 
         expires_at = datetime.now(timezone.utc) + timedelta(

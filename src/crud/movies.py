@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.dialects.postgresql import insert
@@ -7,9 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete, update
 from sqlalchemy.orm import selectinload, joinedload
 
-from database.models import MovieReaction, FavoriteMovie
-from database.models.movies import Movie, Star, Director, Genre
-from database.models.reactions import CommentAnswer
+from database.models import Movie, Star, Director, Genre, Certification
+from database.models import CommentAnswer, MovieReaction, FavoriteMovie
 
 
 def _get_fts_query(raw_query: str, model_field):
@@ -21,6 +20,30 @@ def _get_fts_query(raw_query: str, model_field):
 
 async def get_lite_movie(db: AsyncSession, movie_id: int) -> Optional[Movie]:
     return await db.scalar(select(Movie).where(Movie.id == movie_id))
+
+
+async def _get_or_create_instance(db: AsyncSession, instance, **fields):
+    stmt = (
+        select(instance)
+        .where(
+            *tuple(
+                getattr(instance, field_name) == value
+                for field_name, value in fields.items()
+            )
+        )
+    )
+    loaded_instance = await db.scalar(stmt)
+
+    if not loaded_instance:
+        loaded_instance = await db.scalar(
+            insert(instance)
+            .values(
+                **fields
+            )
+            .on_conflict_do_nothing()
+            .returning(instance)
+        )
+    return loaded_instance
 
 
 async def get_movies(
@@ -38,7 +61,7 @@ async def get_movies(
     price: Optional[Decimal] = None,
     order_by_field: Optional[str] = None,
     is_desc: bool = False,
-) -> List[Movie]:
+) -> list[Movie]:
     stmt = (
         select(Movie)
         .options(selectinload(Movie.stars), selectinload(Movie.directors))
@@ -78,19 +101,152 @@ async def get_movies(
     return db_res.all()
 
 
-async def get_movie(db: AsyncSession, movie_id: int) -> Movie:
+async def get_movie(db: AsyncSession, movie_id: int, get_reactions: bool = True) -> Movie:
     stmt = (
         select(Movie)
         .options(
             joinedload(Movie.certification),
             selectinload(Movie.stars),
             selectinload(Movie.directors),
-            selectinload(Movie.genres),
-            selectinload(Movie.reactions).selectinload(MovieReaction.comment_answers),
+            selectinload(Movie.genres)
         )
         .where(Movie.id == movie_id)
     )
+    if get_reactions:
+        stmt = stmt.options(
+            selectinload(Movie.reactions).selectinload(MovieReaction.comment_answers),
+        )
     return await db.scalar(stmt)
+
+
+async def update_movie(db: AsyncSession, movie_id: int, **kwargs) -> Movie:
+    if not kwargs:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one field is required"
+        )
+
+    movie_fields = frozenset(
+        column
+        for column in Movie.__table__.columns.keys()
+        if column not in {"uuid", "id"}
+    )
+    nullable_fields = frozenset(column.key for column in Movie.__table__.columns if column.nullable)
+    field_to_update = {
+        key: kwargs[key]
+        for key in movie_fields & kwargs.keys()
+    }
+
+    movie = await get_movie(db=db, movie_id=movie_id, get_reactions=False)
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found"
+        )
+    for field_name, value in field_to_update.items():
+        if value or field_name in nullable_fields:
+            setattr(movie, field_name, value)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Field '{field_name}' cannot be null or not valid"
+            )
+    genres, director, stars, certification = (
+        kwargs.get("genres"),
+        kwargs.get("director"),
+        kwargs.get("stars"),
+        kwargs.get("certification")
+    )
+    if genres:
+        loaded_genres = [
+            genre
+            for genre_name in genres
+            if (genre := await _get_or_create_instance(db=db, instance=Genre, name=genre_name))
+        ]
+        if loaded_genres:
+            movie.genres = loaded_genres
+
+    if stars:
+        loaded_stars = [
+            star
+            for star_full_name in stars
+            if (star := await _get_or_create_instance(db=db, instance=Star, name=star_full_name))
+        ]
+        if loaded_stars:
+            movie.stars = loaded_stars
+
+    if director:
+        loaded_director = await _get_or_create_instance(db=db, instance=Director, name=director)
+        if loaded_director:
+            movie.directors = [loaded_director]
+
+    if certification:
+        loaded_certification = await _get_or_create_instance(db=db, instance=Certification, name=certification)
+        if loaded_certification:
+            movie.certification = loaded_certification
+
+    db.add(movie)
+    await db.flush()
+    return movie
+
+
+async def create_movie(db: AsyncSession, **kwargs) -> Optional[Movie]:
+    movie_fields = frozenset(
+        column
+        for column in Movie.__table__.columns.keys()
+        if column not in {"uuid", "id"}
+    )
+    not_nullable_movie_fields = frozenset(
+        column.key
+        for column in Movie.__table__.columns
+        if not column.nullable and column.key not in {"id", "uuid"}
+    )
+
+    not_set_fields = not_nullable_movie_fields.difference(kwargs.keys())
+    if not_set_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Required fields [{", ".join(not_set_fields)}]"
+        )
+
+    fields_to_create = {
+        field: kwargs[field]
+        for field in movie_fields
+        if field in kwargs and (
+            kwargs[field] is not None
+            or field not in not_nullable_movie_fields
+        )
+    }
+    movie = await db.scalar(
+        insert(Movie)
+        .values(**fields_to_create)
+        .on_conflict_do_nothing()
+        .returning(Movie)
+    )
+
+    genres, director, stars, certification = (
+        kwargs.get("genres"),
+        kwargs.get("director"),
+        kwargs.get("stars"),
+        kwargs.get("certification")
+    )
+    if any((genres, director, stars)) and movie:
+        return await update_movie(db=db, movie_id=movie.id, genres=genres, director=director, stars=stars, certification=certification)
+    return movie
+
+
+async def delete_movie(db: AsyncSession, movie_id: int) -> Optional[Movie]:
+    from crud.orders import _get_is_purchased_movie
+    if await _get_is_purchased_movie(db=db, movie_id=movie_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The film had already been bought by someone"
+        )
+    await db.scalar(
+        delete(Movie)
+        .where(Movie.id == movie_id)
+    )
 
 
 async def set_reaction(
@@ -393,7 +549,7 @@ async def delete_favorite_movie(db: AsyncSession, user_id: int, movie_id: int) -
         )
 
 
-async def get_all_genres_with_movies_count(db: AsyncSession) -> List[Genre]:
+async def get_all_genres_with_movies_count(db: AsyncSession) -> list[Genre]:
     return await db.execute(
         select(Genre, func.count(Movie.id)).outerjoin(Genre.movies).group_by(Genre.id)
     )

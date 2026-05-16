@@ -4,6 +4,8 @@ from starlette.responses import JSONResponse
 from routes.accounts import router as accounts_router
 from routes.movies import router as movies_router
 from routes.cart import router as cart_router
+from routes.orders import router as orders_router
+from routes.payments import router as payments_router
 
 app = FastAPI()
 
@@ -29,3 +31,5 @@ async def docs_middleware(request: Request, call_next):
 app.include_router(accounts_router, prefix="/auth", tags=["auth"])
 app.include_router(movies_router, prefix="/movies", tags=["movies"])
 app.include_router(cart_router, prefix="/cart", tags=["cart"])
+app.include_router(orders_router, prefix="/orders", tags=["orders"])
+app.include_router(payments_router, prefix="/payments", tags=["payments"])

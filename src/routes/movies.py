@@ -5,15 +5,17 @@ from typing import Optional
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, status, HTTPException, Request, Query, BackgroundTasks
+from starlette.background import BackgroundTask
 
 from config.dependencies import (
     EMAIL_SENDER,
     LIMIT_OFFSET,
     TOKEN_DATA,
+    DATABASE,
+    MODERATOR_USER
 )
 from crud.accounts import get_user_by_id
 from crud.base_crud import rollback_decorator
-from database import DATABASE
 from crud.movies import (
     get_movies,
     set_reaction,
@@ -31,7 +33,7 @@ from crud.movies import (
     delete_comment_answer,
     set_reaction_to_comment,
     delete_comment_answer_reaction,
-    get_lite_movie,
+    get_lite_movie, update_movie, create_movie, delete_movie,
 )
 from schemas.base_schemas import MessageResponseSchema
 from schemas.movies import (
@@ -49,7 +51,7 @@ from schemas.movies import (
     CommentAnswerRequestSchema,
     DeleteCommentAnswerRequestSchema,
     CommentReactionRequestSchema,
-    DeleteCommentReactionRequestSchema,
+    DeleteCommentReactionRequestSchema, UpdateMovieRequestSchema, CreateMovieRequestSchema,
 )
 
 router = APIRouter()
@@ -155,13 +157,94 @@ async def movie_detail(
 ):
     movie = await get_movie(db=db, movie_id=movie_id)
 
-    reactions = Counter(reaction_model.reaction for reaction_model in movie.reactions)
-    likes = reactions[True]
-    dislikes = reactions[False]
-    movie.likes = likes
-    movie.dislikes = dislikes
+    if movie:
+        reactions = Counter(reaction_model.reaction for reaction_model in movie.reactions)
+        likes = reactions[True]
+        dislikes = reactions[False]
+        movie.likes = likes
+        movie.dislikes = dislikes
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found"
+        )
 
     return movie
+
+
+@router.patch(
+    path="/catalog/{movie_id}/",
+    status_code=status.HTTP_200_OK,
+    summary="Movie Patch",
+    response_model=MessageResponseSchema,
+    responses={}
+)
+@rollback_decorator()
+async def update_movie_by_moderator(
+    db: DATABASE,
+    user: MODERATOR_USER,  # noqa
+    update_movie_data: UpdateMovieRequestSchema,
+    movie_id: int
+):
+    await update_movie(db=db, movie_id=movie_id, **update_movie_data.model_dump(exclude_unset=True))
+    await db.commit()
+    return {"message": "Movie has been updated"}
+
+
+@router.post(
+    path="/catalog/",
+    status_code=status.HTTP_201_CREATED,
+    summary="Movie Create",
+    response_model=MessageResponseSchema,
+    responses={}
+)
+@rollback_decorator()
+async def create_new_movie_by_moderator(
+    db: DATABASE,
+    user: MODERATOR_USER,  # noqa
+    new_movie_data: CreateMovieRequestSchema
+):
+    movie = await create_movie(db=db, **new_movie_data.model_dump(exclude_unset=True))
+    await db.commit()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Movie may conflict on create",
+        )
+    return {"message": "Movie has been created"}
+
+
+@router.delete(
+    path="/catalog/{movie_id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Movie Delete",
+    responses={}
+)
+@rollback_decorator()
+async def delete_movie_by_moderator(
+    db: DATABASE,
+    user: MODERATOR_USER,  # noqa
+    movie_id: int,
+    email_sender: EMAIL_SENDER,
+):
+    movie = await get_lite_movie(db=db, movie_id=movie_id)
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found",
+        )
+
+    try:
+        await delete_movie(db=db, movie_id=movie_id)
+    except HTTPException:
+        await email_sender.send_notification_about_impossibility_of_delete_movie(
+            email=user.email,
+            movie_name=movie.name,
+        )
+        raise
+
+    await db.commit()
 
 
 @router.post(

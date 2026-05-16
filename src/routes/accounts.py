@@ -34,8 +34,7 @@ from crud.accounts import (
 )
 from crud.base_crud import rollback_decorator
 from schemas.base_schemas import MessageResponseSchema
-from config.dependencies import EMAIL_SENDER, JWT_MANAGER, TOKEN_DATA
-from database import DATABASE
+from config.dependencies import EMAIL_SENDER, JWT_MANAGER, TOKEN_DATA, DATABASE
 
 router = APIRouter()
 

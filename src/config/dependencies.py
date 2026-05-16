@@ -1,13 +1,20 @@
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, Request, HTTPException, status
 from fastapi.params import Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.settings import Settings
 from notifications.emails import EmailSender
 from security import JWTManager
 
+from database.session import (
+    get_postgresql_db as get_db,
+)
 
+
+@lru_cache
 def get_settings() -> Settings:
     return Settings()
 
@@ -27,6 +34,7 @@ def get_email_sender(
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
         comment_answer_template_name=settings.COMMENT_ANSWER_TEMPLATE_NAME,
         comment_reaction_template_name=settings.COMMENT_REACTION_TEMPLATE_NAME,
+        impossible_delete_movie_template_name=settings.IMPOSSIBLE_DELETE_MOVIE_TEMPLATE_NAME
     )
 
 
@@ -63,7 +71,6 @@ def get_jwt_manager(settings: Settings = Depends(get_settings)) -> JWTManager:
 def page_to_limit_offset(
     settings: Settings = Depends(get_settings), page: int = Query(default=1, ge=1)
 ) -> tuple[int, int]:
-
     limit = settings.DEFAULT_PAGE_SIZE
     offset = limit * (page - 1)
 
@@ -77,9 +84,41 @@ def token_data(
     return jwt_manager.decode_access_token(token=raw_token)
 
 
+DATABASE = Annotated[AsyncSession, Depends(get_db)]
 TOKEN_DATA = Annotated[dict, Depends(token_data)]
 LIMIT_OFFSET = Annotated[tuple[int, int], Depends(page_to_limit_offset)]
 SETTINGS = Annotated[Settings, Depends(get_settings)]
 EMAIL_SENDER = Annotated[EmailSender, Depends(get_email_sender)]
 JWT_MANAGER = Annotated[JWTManager, Depends(get_jwt_manager)]
 ACCESS_TOKEN = Annotated[str, Depends(get_token)]
+
+
+async def get_current_user(
+    db: DATABASE,
+    token_data: TOKEN_DATA
+) -> "User":
+    from crud.accounts import get_user_by_id
+    return await get_user_by_id(db=db, user_id=token_data["user_id"], select_group=True)
+
+
+async def get_moderator_user(user: "User" = Depends(get_current_user)) -> "User":
+    from database.models import UserGroupEnum
+
+    if user.group.name != UserGroupEnum.MODERATOR and user.group.name != UserGroupEnum.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No required permission")
+
+    return user
+
+
+async def get_admin_user(user: "User" = Depends(get_current_user)) -> "User":
+    from database.models import UserGroupEnum
+
+    if user.group.name != UserGroupEnum.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No required permission")
+
+    return user
+
+
+CURRENT_USER = Annotated["User", Depends(get_current_user)]
+MODERATOR_USER = Annotated["User", Depends(get_moderator_user)]
+ADMIN_USER = Annotated["User", Depends(get_admin_user)]

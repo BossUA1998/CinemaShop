@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import insert, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from database.models import (
     User,
@@ -49,8 +50,11 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
     return await db.scalar(select(User).where(User.email == email))
 
 
-async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
-    return await db.scalar(select(User).where(User.id == user_id))
+async def get_user_by_id(db: AsyncSession, user_id: int, select_group: bool = False) -> Optional[User]:
+    stmt = (select(User).where(User.id == user_id))
+    if select_group:
+        stmt = stmt.options(selectinload(User.group))
+    return await db.scalar(stmt)
 
 
 async def get_user_by_activation_token(db: AsyncSession, token: str) -> Optional[User]:
