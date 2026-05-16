@@ -13,8 +13,7 @@ app = FastAPI()
 @app.middleware("http")
 async def docs_middleware(request: Request, call_next):
     if request.url.path in {"/docs", "/redoc", "/openapi.json"}:
-        from config import get_settings
-        from config.dependencies import get_jwt_manager, get_token
+        from config.dependencies import get_jwt_manager, get_token, get_settings
 
         try:
             token = get_token(request)

@@ -1,5 +1,6 @@
 import os
 import stripe
+from typing import Optional
 from pathlib import Path
 
 from pydantic import field_validator, model_validator
@@ -30,6 +31,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "admin"
     POSTGRES_PASSWORD: str = "1qazcde3"
     POSTGRES_HOST: str = "postgres_cinema_shop"
+    DATABASE_URL: Optional[str] = None
 
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_PORT: str = "587"
@@ -45,6 +47,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def set_stripe_api_key(self):
+        self.DATABASE_URL = (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
+            f"{self.POSTGRES_HOST}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"
+        )
+
         stripe.api_key = self.STRIPE_PRIVATE_KEY
         return self
 
