@@ -71,6 +71,8 @@ services:
   migrator:
     build: .
     command: ["/bin/sh", "/src/commands/run_migrations_and_populate.sh"]
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy

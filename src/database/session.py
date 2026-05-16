@@ -9,11 +9,8 @@ from config.settings import Settings
 
 settings = Settings()
 
-POSTGRESQL_DATABASE_URL = (
-    f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@"
-    f"{settings.POSTGRES_HOST}:{settings.POSTGRES_DB_PORT}/{settings.POSTGRES_DB}"
-)
-postgresql_engine = create_async_engine(POSTGRESQL_DATABASE_URL, echo=True)
+POSTGRESQL_DATABASE_URL = settings.DATABASE_URL
+postgresql_engine = create_async_engine(POSTGRESQL_DATABASE_URL, echo=False)
 AsyncPostgresqlSessionLocal = sessionmaker(
     bind=postgresql_engine,
     class_=AsyncSession,
