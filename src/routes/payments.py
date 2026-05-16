@@ -1,12 +1,15 @@
+from typing import Optional
+from datetime import datetime, date
+
 import stripe
-from fastapi import APIRouter, status, Request, HTTPException, BackgroundTasks
-from config.dependencies import SETTINGS, TOKEN_DATA, DATABASE
+from fastapi import APIRouter, status, Request, HTTPException, Query
+from config.dependencies import SETTINGS, CURRENT_USER, DATABASE, TOKEN_DATA, MODERATOR_USER
 from config.settings import Settings
 from crud.base_crud import rollback_decorator
 from crud.orders import get_order
-from crud.payments import create_payment, filling_payment
+from crud.payments import create_payment, filling_payment, get_payments
 from database.models import OrderStatus, Movie, PaymentStatus
-from schemas.payments import CreatePaymentRequestSchema
+from schemas.payments import CreatePaymentRequestSchema, PaymentsResponseSchema
 
 router = APIRouter()
 
@@ -26,8 +29,12 @@ def _get_payment_id(object_) -> int:
 async def _create_payment_session(
     settings: "Settings",
     movies: list[Movie],
-    metadata: dict
+    metadata: dict,
+    email: str
 ):
+    """
+    Stripe handles payment confirmation by sending a receipt.
+    """
     line_items = [
         {
             "price_data": {
@@ -44,7 +51,10 @@ async def _create_payment_session(
     ]
     session = stripe.checkout.Session.create(
         mode="payment",
-        payment_intent_data={"metadata": metadata},
+        payment_intent_data={
+            "metadata": metadata,
+            "receipt_email": email
+        },
         line_items=line_items,
         metadata=metadata,
         success_url=settings.STRIPE_SUCCESS_URL,
@@ -62,7 +72,7 @@ async def _create_payment_session(
 async def payments_webhook(
     request: Request,
     settings: SETTINGS,
-    db: DATABASE
+    db: DATABASE,
 ):
     payload = await request.body()
     signature = request.headers.get("stripe-signature")
@@ -87,7 +97,6 @@ async def payments_webhook(
                 status=status_,
                 stripe_payment_id=stripe_payment_id
             )
-            # TODO implement to send receipt on email
         case "checkout.session.expired":
             status_ = PaymentStatus.canceled
             payment_id = _get_payment_id(object_=object_)
@@ -110,11 +119,11 @@ async def payments_webhook(
 @rollback_decorator()
 async def payments_session(
     db: DATABASE,
-    token_data: TOKEN_DATA,
+    user: CURRENT_USER,
     payment_data: CreatePaymentRequestSchema,
     settings: SETTINGS,
 ):
-    user_id = token_data["user_id"]
+    user_id = user.id
     order_id = payment_data.order_id
 
     order = await get_order(
@@ -154,7 +163,42 @@ async def payments_session(
             )
         ),
         settings=settings,
-        metadata={"payment_id": payment_id}
+        metadata={"payment_id": payment_id},
+        email=user.email,
     )
     await db.commit()
     return {"payment": payment_url}
+
+
+@router.get(
+    path="/",
+    status_code=status.HTTP_200_OK,
+    summary="User Payments",
+    response_model=list[PaymentsResponseSchema],
+    responses={}
+)
+async def get_my_payments(
+    db: DATABASE,
+    token_data: TOKEN_DATA
+):
+    user_id = token_data["user_id"]
+    return await get_payments(db=db, user_id=user_id)
+
+
+@router.get(
+    path="/all/",
+    status_code=status.HTTP_200_OK,
+    summary="User Payments",
+    response_model=list[PaymentsResponseSchema],
+    responses={}
+)
+async def get_all_payments(
+    db: DATABASE,
+    user: MODERATOR_USER, # noqa
+
+    # query
+    user_id: Optional[int] = Query(default=None, ge=1),
+    created_at: Optional[date | datetime] = Query(default=None),
+    status: Optional[PaymentStatus] = Query(default=None),
+):
+    return await get_payments(db=db, user_id=user_id, created_at=created_at, status=status)

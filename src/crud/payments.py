@@ -1,5 +1,8 @@
+from typing import Iterable, Optional
+from datetime import datetime, date
+
 from fastapi import HTTPException, status
-from sqlalchemy import update
+from sqlalchemy import update, select, cast, Date
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,3 +65,29 @@ async def filling_payment(
         )
         .where(Payment.id == payment_id)
     )
+
+
+async def get_payments(
+    db: AsyncSession,
+    user_id: Optional[int] = None,
+    created_at: Optional[date | datetime] = None,
+    status: Optional[PaymentStatus] = None,
+) -> Iterable[Payment]:
+    stmt = select(Payment)
+    if user_id:
+        stmt = stmt.where(Payment.user_id == user_id)
+    if created_at:
+        if isinstance(created_at, date):
+            stmt = stmt.where(
+                cast(Payment.created_at, Date) == created_at
+            )
+        if isinstance(created_at, datetime):
+            stmt = stmt.where(
+                Payment.created_at == created_at
+            )
+    if status:
+        stmt = stmt.where(
+            Payment.status == status
+        )
+
+    return await db.scalars(stmt)

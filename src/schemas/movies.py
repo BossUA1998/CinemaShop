@@ -16,6 +16,10 @@ class _RawMovieResponseSchema(BaseModel):
     year: int
 
 
+class PurchasedMoviesResponseSchema(_RawMovieResponseSchema):
+    ...
+
+
 class MovieInCartResponseSchema(_RawMovieResponseSchema):
     genres: list[str]
 

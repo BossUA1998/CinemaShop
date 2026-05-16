@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from database.models import Order, OrderItem, OrderStatus
+from database.models import Order, OrderItem, OrderStatus, Movie
 
 
 async def create_orders_by_user_id(db: AsyncSession, user_id: int) -> None:
@@ -89,7 +89,7 @@ async def get_orders(
     user_id: Optional[int] = None,
     created_at: Optional[datetime] = None,
     status: Optional[OrderStatus] = None
-)-> Iterable[Order]:
+) -> Iterable[Order]:
     stmt = (
         select(Order)
         .options(
@@ -117,3 +117,14 @@ async def delete_order_by_id(db: AsyncSession, order_id: int, user_id: int) -> b
         )
     )
     return db_res.rowcount == 1
+
+
+async def get_purchased_movies(db: AsyncSession, user_id: int) -> Iterable[Movie]:
+    return await db.scalars(
+        select(Movie)
+        .join(OrderItem, OrderItem.movie_id == Movie.id)
+        .join(Order, Order.id == OrderItem.order_id)
+        .where(
+            Order.user_id == user_id,
+        )
+    )

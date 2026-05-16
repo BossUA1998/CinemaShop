@@ -8,9 +8,10 @@ from crud.cart import (
     get_all_movies_from_cart,
 )
 from config.dependencies import TOKEN_DATA, DATABASE, MODERATOR_USER
+from crud.orders import get_purchased_movies
 from schemas.base_schemas import MessageResponseSchema
 from schemas.cart import AddToCartRequestSchema, DeleteFromCartRequestSchema
-from schemas.movies import MovieInCartResponseSchema
+from schemas.movies import MovieInCartResponseSchema, PurchasedMoviesResponseSchema
 
 router = APIRouter()
 
@@ -106,4 +107,20 @@ async def get_user_cart_by_moderator(
     return await get_all_movies_from_cart(
         db=db,
         user_id=user_id,
+    )
+
+@router.get(
+    path="/purchased/",
+    status_code=status.HTTP_200_OK,
+    summary="Cart Movies",
+    response_model=list[PurchasedMoviesResponseSchema],
+    responses={}
+)
+async def get_all_purchased_movies_from_cart(
+    db: DATABASE,
+    token_data: TOKEN_DATA,
+):
+    return await get_purchased_movies(
+        db=db,
+        user_id=token_data["user_id"],
     )
