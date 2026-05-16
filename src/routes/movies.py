@@ -8,13 +8,11 @@ from fastapi import APIRouter, status, HTTPException, Request, Query, Background
 
 from config.dependencies import (
     EMAIL_SENDER,
-    ACCESS_TOKEN,
-    JWT_MANAGER,
-    SETTINGS,
     LIMIT_OFFSET,
     TOKEN_DATA,
 )
-from crud.accounts import rollback_decorator, get_user_by_id
+from crud.accounts import get_user_by_id
+from crud.base_crud import rollback_decorator
 from database import DATABASE
 from crud.movies import (
     get_movies,
@@ -32,14 +30,17 @@ from crud.movies import (
     set_comment_answer,
     delete_comment_answer,
     set_reaction_to_comment,
-    delete_comment_answer_reaction, get_lite_movie,
+    delete_comment_answer_reaction,
+    get_lite_movie,
 )
-from schemas.accounts import MessageResponseSchema
+from schemas.base_schemas import MessageResponseSchema
 from schemas.movies import (
     PaginatedMovieResponseSchema,
     ReactionRequestSchema,
     CommentRequestSchema,
-    DeleteReactionOrCommentRequestSchema,
+    DeleteReactionRequestSchema,
+    DeleteCommentRequestSchema,
+    DeleteGradeRequestSchema,
     GradeRequestSchema,
     AddToFavoriteRequestSchema,
     MovieDetailResponseSchema,
@@ -259,7 +260,7 @@ async def movie_comment_answer(
         email_sender.send_reply_notification_to_comment,
         email=comment_user.email,
         comment=comment_answer_data.comment,
-        movie_name=movie.name
+        movie_name=movie.name,
     )
     await db.commit()
     return {"message": "The answer to comment was recorded"}
@@ -358,7 +359,7 @@ async def delete_movie_comment_reaction(
 async def delete_movie_reaction(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    data_for_delete: DeleteReactionOrCommentRequestSchema,
+    data_for_delete: DeleteReactionRequestSchema,
 ):
     await delete_reaction(
         db=db, user_id=token_data["user_id"], movie_id=data_for_delete.movie_id
@@ -377,7 +378,7 @@ async def delete_movie_reaction(
 async def delete_movie_comment(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    data_for_delete: DeleteReactionOrCommentRequestSchema,
+    data_for_delete: DeleteCommentRequestSchema,
 ):
     await delete_comment(
         db=db, user_id=token_data["user_id"], movie_id=data_for_delete.movie_id
@@ -396,7 +397,7 @@ async def delete_movie_comment(
 async def delete_movie_grade(
     db: DATABASE,
     token_data: TOKEN_DATA,
-    data_for_delete: DeleteReactionOrCommentRequestSchema,
+    data_for_delete: DeleteGradeRequestSchema,
 ):
     await delete_grade(
         db=db, user_id=token_data["user_id"], movie_id=data_for_delete.movie_id

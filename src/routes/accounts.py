@@ -9,7 +9,6 @@ from sqlalchemy.exc import IntegrityError
 from schemas.accounts import (
     UserRegistrationResponseSchema,
     UserRegistrationRequestSchema,
-    MessageResponseSchema,
     ActivationRequestSchema,
     NewActivationRequestSchema,
     UserLoginResponseSchema,
@@ -21,7 +20,6 @@ from schemas.accounts import (
     ResetPasswordVerifyRequestSchema,
 )
 from crud.accounts import (
-    rollback_decorator,
     create_new_user,
     create_activation_token,
     get_user_by_activation_token,
@@ -34,7 +32,9 @@ from crud.accounts import (
     get_password_reset_token,
     delete_password_reset_tokens,
 )
-from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, TOKEN_DATA
+from crud.base_crud import rollback_decorator
+from schemas.base_schemas import MessageResponseSchema
+from config.dependencies import EMAIL_SENDER, JWT_MANAGER, TOKEN_DATA
 from database import DATABASE
 
 router = APIRouter()
