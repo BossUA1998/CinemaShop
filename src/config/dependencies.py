@@ -1,4 +1,7 @@
+from typing import Annotated
+
 from fastapi import Depends, Request, HTTPException, status
+from fastapi.params import Query
 
 from config.settings import Settings
 from notifications.emails import EmailSender
@@ -22,6 +25,8 @@ def get_email_sender(
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
+        comment_answer_template_name=settings.COMMENT_ANSWER_TEMPLATE_NAME,
+        comment_reaction_template_name=settings.COMMENT_REACTION_TEMPLATE_NAME,
     )
 
 
@@ -53,3 +58,28 @@ def get_jwt_manager(settings: Settings = Depends(get_settings)) -> JWTManager:
         access_token_expire_minutes=settings.ACCESS_TOKEN_LIFETIME,
         refresh_token_expire_days=settings.REFRESH_TOKEN_LIFETIME,
     )
+
+
+def page_to_limit_offset(
+    settings: Settings = Depends(get_settings), page: int = Query(default=1, ge=1)
+) -> tuple[int, int]:
+
+    limit = settings.DEFAULT_PAGE_SIZE
+    offset = limit * (page - 1)
+
+    return limit, offset
+
+
+def token_data(
+    raw_token: str = Depends(get_token),
+    jwt_manager: JWTManager = Depends(get_jwt_manager),
+) -> dict:
+    return jwt_manager.decode_access_token(token=raw_token)
+
+
+TOKEN_DATA = Annotated[dict, Depends(token_data)]
+LIMIT_OFFSET = Annotated[tuple[int, int], Depends(page_to_limit_offset)]
+SETTINGS = Annotated[Settings, Depends(get_settings)]
+EMAIL_SENDER = Annotated[EmailSender, Depends(get_email_sender)]
+JWT_MANAGER = Annotated[JWTManager, Depends(get_jwt_manager)]
+ACCESS_TOKEN = Annotated[str, Depends(get_token)]

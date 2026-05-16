@@ -16,6 +16,8 @@ class EmailSender:
         activation_complete_email_template_name: str,
         password_email_template_name: str,
         password_complete_email_template_name: str,
+        comment_answer_template_name: str,
+        comment_reaction_template_name: str,
     ):
         self._smtp_server = smtp_server
         self._smtp_port = smtp_port
@@ -29,6 +31,8 @@ class EmailSender:
         self._password_complete_email_template_name = (
             password_complete_email_template_name
         )
+        self.notification_for_comment_answer = comment_answer_template_name
+        self.notification_for_comment_reaction = comment_reaction_template_name
 
         self._env = Environment(loader=FileSystemLoader(path_to_templates))
 
@@ -85,4 +89,16 @@ class EmailSender:
         template = self._env.get_template(self._password_complete_email_template_name)
         html = template.render(email=email, login_link=login_link)
         subject = "Password Reset"
+        await self._send_email(to=email, subject=subject, html=html)
+
+    async def send_reply_notification_to_comment(self, email: str, comment: str, movie_name: str):
+        template = self._env.get_template(self.notification_for_comment_answer)
+        html = template.render(comment=comment, movie_name=movie_name)
+        subject = "Reply Notification"
+        await self._send_email(to=email, subject=subject, html=html)
+
+    async def send_notification_about_reaction_to_comment(self, email: str, movie_name: str):
+        template = self._env.get_template(self.notification_for_comment_reaction)
+        html = template.render(movie_name=movie_name)
+        subject = "Reaction Notification"
         await self._send_email(to=email, subject=subject, html=html)

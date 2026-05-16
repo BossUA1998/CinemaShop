@@ -5,12 +5,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, status, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from database import get_db
-from notifications.emails import EmailSender
-
-from config.dependencies import get_email_sender, get_jwt_manager, get_token
 
 from schemas.accounts import (
     UserRegistrationResponseSchema,
@@ -40,14 +34,10 @@ from crud.accounts import (
     get_password_reset_token,
     delete_password_reset_tokens,
 )
-from security import JWTManager
+from config.dependencies import EMAIL_SENDER, ACCESS_TOKEN, JWT_MANAGER, TOKEN_DATA
+from database import DATABASE
 
 router = APIRouter()
-
-DATABASE = Annotated[AsyncSession, Depends(get_db)]
-EMAIL_SENDER = Annotated[EmailSender, Depends(get_email_sender)]
-JWT_MANAGER = Annotated[JWTManager, Depends(get_jwt_manager)]
-ACCESS_TOKEN = Annotated[str, Depends(get_token)]
 
 
 @router.post(
@@ -236,10 +226,15 @@ async def new_activation_token(
 async def login_user(
     db: DATABASE, jwt_manager: JWT_MANAGER, user_data: UserLoginRequestSchema
 ):
-    user = await get_user_by_email(db=db, email=user_data.email)
+    user = await get_user_by_email(db=db, email=user_data.email.lower())
     if not user or not user.verify_password(user_data.password):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect email or password"
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not activated, please check your email",
         )
     data = {
         "user_id": user.id,
@@ -292,12 +287,8 @@ async def login_user(
 )
 @rollback_decorator()
 async def logout_user(
-    db: DATABASE,
-    refresh_data: UserLogoutRequestSchema,
-    auth_token: ACCESS_TOKEN,
-    jwt_manager: JWT_MANAGER,
+    db: DATABASE, refresh_data: UserLogoutRequestSchema, token_data: TOKEN_DATA
 ):
-    token_data = jwt_manager.decode_access_token(token=auth_token)
     is_logout = await delete_refresh_tokens(
         db=db, token=refresh_data.refresh_token, user_id=token_data["user_id"]
     )

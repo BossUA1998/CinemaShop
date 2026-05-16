@@ -68,6 +68,12 @@ services:
       - redis
       - worker
 
+  migrator:
+    build: .
+    command: ["/bin/sh", "/src/commands/run_migrations_and_populate.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_cinema_data:

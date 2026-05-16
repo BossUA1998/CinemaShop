@@ -5,6 +5,7 @@ from typing import List
 from sqlalchemy import Enum, String, Boolean, DateTime, func, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
+from database.models.reactions import MovieReaction, FavoriteMovie
 from database.models.base import Base
 from database.validators import accounts as validators
 
@@ -68,6 +69,13 @@ class User(Base):
 
     profile: Mapped[Optional["UserProfile"]] = relationship(
         "UserProfile", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    reactions: Mapped[List["MovieReaction"]] = relationship(
+        "MovieReaction", back_populates="user"
+    )
+    favorite_movies_by_user: Mapped[List["Movie"]] = relationship(
+        "Movie", secondary="favorite_movies"
     )
 
     @property

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException, status
 from starlette.responses import JSONResponse
 
 from routes.accounts import router as accounts_router
+from routes.movies import router as movies_router
 
 app = FastAPI()
 
@@ -25,3 +26,4 @@ async def docs_middleware(request: Request, call_next):
 
 
 app.include_router(accounts_router, prefix="/auth", tags=["auth"])
+app.include_router(movies_router, prefix="/movies", tags=["movies"])
