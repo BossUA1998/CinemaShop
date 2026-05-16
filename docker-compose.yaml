@@ -8,8 +8,6 @@ services:
       - "${POSTGRES_DB_PORT:-5432}:5432"
     volumes:
       - postgres_cinema_data:/var/lib/postgresql/data/
-    networks:
-      - cinema_shop_network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h localhost || exit 1" ]
       interval: 10s
@@ -29,8 +27,6 @@ services:
         condition: service_healthy
     volumes:
       - pgadmin_cinema_data:/var/lib/pgadmin
-    networks:
-      - cinema_shop_network
 
   web:
     build: .
@@ -45,15 +41,36 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/src/fastapi
-    networks:
-      - cinema_shop_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_broker
+    ports:
+      - "6379:6379"
+    command: redis-server
+
+  worker:
+    build: .
+    command: celery -A celery_worker.worker:celery_app worker --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+
+  beat:
+    build: .
+    command: celery -A celery_worker.worker:celery_app beat --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - worker
+
 
 volumes:
   postgres_cinema_data:
     driver: local
   pgadmin_cinema_data:
     driver: local
-
-networks:
-  cinema_shop_network:
-    driver: bridge
